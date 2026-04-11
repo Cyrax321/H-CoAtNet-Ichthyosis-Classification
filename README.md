@@ -32,7 +32,7 @@ The release supports **methodological verification, benchmarking, and reproducib
 **Hierarchical Hybrid Learning: Enhanced Classification of Ichthyosis Variants in Dermatological Images Using H-CoAtNet **
 
 Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan
-*(Under Review, 2025)*
+*(Under Review)*
 
 ---
 
