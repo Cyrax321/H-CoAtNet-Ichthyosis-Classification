@@ -273,4 +273,45 @@ Macro-averaged metrics are emphasized due to **class imbalance** inherent in rar
 Email: [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
 
 ---
+---
+
+## ⚖️ Legal Notice & Copyright
+
+```
+Copyright © 2026 The Authors. All Rights Reserved.
+
+This repository and all of its contents — including but not limited to source code,
+experiment scripts, benchmark data, terminal output logs, research reports, and
+the accompanying manuscript PDF — are made available SOLELY for the purpose of
+peer review and reproducibility verification associated with the submitted manuscript:
+
+  "Signed Positional Prüfer Sequences (SPPS): A Novel Linear-Time Tree
+   Serialization Algorithm"
+
+THIS IS NOT AN OPEN-SOURCE RELEASE.
+
+The following actions are STRICTLY PROHIBITED without explicit written permission
+from the authors:
+
+  • Reuse of any portion of the code in other projects or products
+  • Redistribution of this repository or any of its contents, in whole or in part
+  • Modification, adaptation, translation, or creation of derivative works
+  • Deployment of the algorithm or implementation in any production system
+  • Academic citation of unpublished results prior to formal publication
+  • Training of machine learning models on the contents of this repository
+
+VIOLATION OF THESE TERMS MAY CONSTITUTE COPYRIGHT INFRINGEMENT AND/OR
+MISAPPROPRIATION OF UNPUBLISHED ACADEMIC WORK.
+
+Upon publication of the accepted manuscript, a formal open-source license
+will be designated by the authors. Until that time, no license — express,
+implied, or statutory — is granted to any party.
+```
+
+> **Permitted use:** Reviewers assigned by the programme committee may read, compile, and run the code solely for the purpose of evaluating the submitted manuscript. No other use is permitted.
+
+---
+
+<div align="center">
+
 
