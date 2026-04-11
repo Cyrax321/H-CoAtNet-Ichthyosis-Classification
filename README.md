@@ -273,39 +273,26 @@ Macro-averaged metrics are emphasized due to **class imbalance** inherent in rar
 Email: [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
 
 ---
----
 
 ## ⚖️ Legal Notice & Copyright
 
 ```
 Copyright © 2026 The Authors. All Rights Reserved.
-
-This repository and all of its contents — including but not limited to source code,
-experiment scripts, benchmark data, terminal output logs, research reports, and
-the accompanying manuscript PDF — are made available SOLELY for the purpose of
-peer review and reproducibility verification associated with the submitted manuscript:
-
-  "Signed Positional Prüfer Sequences (SPPS): A Novel Linear-Time Tree
-   Serialization Algorithm"
-
-THIS IS NOT AN OPEN-SOURCE RELEASE.
-
-The following actions are STRICTLY PROHIBITED without explicit written permission
-from the authors:
-
-  • Reuse of any portion of the code in other projects or products
-  • Redistribution of this repository or any of its contents, in whole or in part
-  • Modification, adaptation, translation, or creation of derivative works
-  • Deployment of the algorithm or implementation in any production system
-  • Academic citation of unpublished results prior to formal publication
-  • Training of machine learning models on the contents of this repository
-
-VIOLATION OF THESE TERMS MAY CONSTITUTE COPYRIGHT INFRINGEMENT AND/OR
-MISAPPROPRIATION OF UNPUBLISHED ACADEMIC WORK.
-
-Upon publication of the accepted manuscript, a formal open-source license
-will be designated by the authors. Until that time, no license — express,
-implied, or statutory — is granted to any party.
+This repository, titled “Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification (H-CoAtNet)”, and all associated materials — including but not limited to source code, experimental pipelines, benchmark datasets, execution logs, research documentation, and the accompanying manuscript — are provided solely for the purposes of peer review, validation, and reproducibility assessment in connection with the submitted work:
+“Hierarchical Hybrid Learning: Enhanced Classification of Ichthyosis Variants in Dermatological Images Using H-CoAtNet”
+Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan (Under Review, 2025)
+This repository constitutes the official research codebase for a hierarchically enhanced hybrid convolution–transformer framework designed for multi-class Ichthyosis subtype classification from dermatological imagery.
+This is NOT an open-source release.
+Restrictions
+The following actions are strictly prohibited without prior explicit written consent from the authors:
+Reuse of any portion of the codebase in external projects, systems, or products
+Redistribution of this repository or its contents, in full or in part
+Modification, adaptation, translation, or creation of derivative works
+Deployment of the framework or its components in production or clinical systems
+Citation or reference to unpublished results prior to formal publication
+Utilization of repository contents for training machine learning models
+Legal Notice
+Unauthorized use may constitute copyright infringement, intellectual property violation, and/or misappropriation of unpublished academic material.
 ```
 
 > **Permitted use:** Reviewers assigned by the programme committee may read, compile, and run the code solely for the purpose of evaluating the submitted manuscript. No other use is permitted.
