@@ -278,19 +278,25 @@ Email: [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
 
 ```
 Copyright © 2026 The Authors. All Rights Reserved.
+
 This repository, titled “Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification (H-CoAtNet)”, and all associated materials — including but not limited to source code, experimental pipelines, benchmark datasets, execution logs, research documentation, and the accompanying manuscript — are provided solely for the purposes of peer review, validation, and reproducibility assessment in connection with the submitted work:
+
 “Hierarchical Hybrid Learning: Enhanced Classification of Ichthyosis Variants in Dermatological Images Using H-CoAtNet”
 Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan (Under Review, 2025)
+
 This repository constitutes the official research codebase for a hierarchically enhanced hybrid convolution–transformer framework designed for multi-class Ichthyosis subtype classification from dermatological imagery.
 This is NOT an open-source release.
+
 Restrictions
-The following actions are strictly prohibited without prior explicit written consent from the authors:
-Reuse of any portion of the codebase in external projects, systems, or products
-Redistribution of this repository or its contents, in full or in part
-Modification, adaptation, translation, or creation of derivative works
-Deployment of the framework or its components in production or clinical systems
-Citation or reference to unpublished results prior to formal publication
-Utilization of repository contents for training machine learning models
+
+ • The following actions are strictly prohibited without prior explicit written consent from the authors:
+ • Reuse of any portion of the codebase in external projects, systems, or products
+ • Redistribution of this repository or its contents, in full or in part
+ • Modification, adaptation, translation, or creation of derivative works
+ • Deployment of the framework or its components in production or clinical systems
+ • Citation or reference to unpublished results prior to formal publication
+ •Utilization of repository contents for training machine learning models
+
 Legal Notice
 Unauthorized use may constitute copyright infringement, intellectual property violation, and/or misappropriation of unpublished academic material.
 ```
