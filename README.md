@@ -17,10 +17,7 @@ contained herein is **strictly prohibited** without explicit written permission 
 </div>
 
 ---
-
-# **H-CoAtNet**
-
-## **Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification**
+## **Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification(H-CoAtNet)**
 
 ## **Official Research Codebase**
 
