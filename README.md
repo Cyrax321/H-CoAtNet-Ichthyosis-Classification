@@ -295,7 +295,7 @@ Restrictions
  • Modification, adaptation, translation, or creation of derivative works
  • Deployment of the framework or its components in production or clinical systems
  • Citation or reference to unpublished results prior to formal publication
- •Utilization of repository contents for training machine learning models
+ • Utilization of repository contents for training machine learning models
 
 Legal Notice
 Unauthorized use may constitute copyright infringement, intellectual property violation, and/or misappropriation of unpublished academic material.
