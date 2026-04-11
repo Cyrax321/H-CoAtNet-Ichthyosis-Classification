@@ -1,18 +1,26 @@
+<div align="center">
+
+---
+
+### ⚠️ REVIEW-ONLY NOTICE
+
+**This repository is provided solely for peer review and reproducibility purposes**  
+**associated with the submitted manuscript.**
+
+Reuse, redistribution, modification, or deployment of any code, data, or results  
+contained herein is **strictly prohibited** without explicit written permission from the authors.
+
+© 2026 The Authors. All Rights Reserved.
+
+---
+
+</div>
 
 ---
 
 # **H-CoAtNet**
 
 ## **Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification**
-
----
-
-⚠️ **Review-Only Notice**
-
-This repository is provided **solely for peer review and reproducibility purposes** associated with the submitted manuscript.
-**Reuse,redistribution,modification, or deployment of this code is strictly prohibited** without explicit written permission from the authors.
-
----
 
 ## **Official Research Codebase**
 
