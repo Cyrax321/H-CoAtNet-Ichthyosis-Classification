@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,18 +13,22 @@ from torchinfo import summary
 from sklearn.metrics import classification_report, confusion_matrix
 from roboflow import Roboflow
 
-
+# Reproducibility
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # Configuration
-
-API_KEY = "API KEY HERE"
+API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 16
 EPOCHS = 30
 LEARNING_RATE = 5e-5
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IN_CHANS = 3
-
 
 
 # ViT Components
@@ -165,7 +170,6 @@ class VisionTransformer(nn.Module):
         return self.head(cls_output)
 
 
-
 # Training, Evaluation, and Plotting
 
 def train_epoch(model, loader, criterion, optimizer, device):
@@ -223,7 +227,6 @@ def plot_curves(history, model_name="ViT"):
         plt.tight_layout()
         plt.savefig(f'{model_name.lower()}_{metric}_curves.png', dpi=300)
         plt.show()
-
 
 
 # Main Execution Logic
@@ -323,9 +326,11 @@ def main():
     # 5. Final Evaluation
     print("\n--- Final Evaluation on Best Model ---")
     if os.path.exists('best_vit_from_scratch.pth'):
-        model.load_state_dict(torch.load('best_vit_from_scratch.pth'))
+        model.load_state_dict(torch.load('best_vit_from_scratch.pth', weights_only=True))
         _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, DEVICE, desc="Final Test")
         print(f"Final Test Accuracy: {final_test_acc:.4f}")
+        np.save('vit_scratch_y_true.npy', np.array(y_true))
+        np.save('vit_scratch_y_pred.npy', np.array(y_pred))
 
         print("\nClassification Report:")
         print(classification_report(y_true, y_pred, target_names=class_names, digits=4))

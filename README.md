@@ -51,46 +51,30 @@ Running commands from the outer directory will result in missing file or module 
 
 ```
 H-CoAtNet/
-├── README.md
 ├── requirements.txt
-├── proposed_method/
-│   └── train_h_coatnet.py
-└── baselines/
-    ├── train_cnn.py
-    ├── train_efficientnet.py
-    ├── train_vit.py
-    ├── train_swin.py
-    ├── train_coatnet.py
-    └── train_gft.py
+├── proposed/
+│   └── train_h_coatnet.py              # Proposed model — H-CoAtNet
+├── baselines/
+│   ├── pretrained/                     # Fine-tuned from ImageNet weights
+│   │   ├── train_efficientnet_b0.py    # EfficientNet-B0
+│   │   ├── train_swin_t.py             # Swin Transformer Tiny
+│   │   ├── train_vit_b16.py            # ViT-B/16
+│   │   ├── train_coatnet.py            # CoAtNet
+│   │   ├── train_gft.py                # GFT
+│   │   ├── train_biomedclip.py         # BiomedCLIP (foundation model)
+│   │   └── train_dinov2.py             # DINOv2 (foundation model)
+│   └── scratch/                        # Trained from random initialisation
+│       ├── train_cnn.py
+│       ├── train_efficientnet_b0.py
+│       ├── train_swin_t.py
+│       └── train_vit.py
+└── evaluation/
+    ├── crossval.py                      # 5-fold cross-validation + McNemar
+    ├── ablation.py                      # Ablation study (4 conditions)
+    └── gradcam.py                       # Grad-CAM visualizations
 ```
 
----
-
-## 1. **Environment Setup**
-
-### Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-**Core Requirements**
-
-* Python ≥ 3.9
-* PyTorch
-* timm
-* torchvision
-* scikit-learn
-* numpy, pandas, matplotlib
-* roboflow
-
-Tested on **macOS (Apple Silicon)** and **Linux** environments.
-
----
-
-## 2. **Problem Overview**
-
-Ichthyosis represents a heterogeneous group of rare genetic skin disorders characterized by abnormal keratinization and severe scaling. Automated classification is challenging due to:
+All commands must be run from inside the `H-CoAtNet/` directory.lassification is challenging due to:
 
 * Extreme **class imbalance**
 * **Subtle morphological differences** between subtypes
@@ -169,7 +153,7 @@ Before executing **any training script**, the API key must be added.
 Open:
 
 ```
-proposed_method/train_h_coatnet.py
+proposed/train_h_coatnet.py
 ```
 
 Add the configuration block near the top of the file:
@@ -199,22 +183,29 @@ rf = Roboflow(api_key=API_KEY)
 ### Proposed Method (H-CoAtNet)
 
 ```bash
-python proposed_method/train_h_coatnet.py
+python proposed/train_h_coatnet.py
 ```
 
-### Baseline Models
+### Pretrained Baselines (Primary Comparisons)
 
 ```bash
-python baselines/train_cnn.py
-python baselines/train_efficientnet.py
-python baselines/train_vit.py
-python baselines/train_swin.py
-python baselines/train_coatnet.py
-python baselines/train_gft.py
+python baselines/pretrained/train_efficientnet_b0.py
+python baselines/pretrained/train_swin_t.py
+python baselines/pretrained/train_vit_b16.py
+python baselines/pretrained/train_coatnet.py
+python baselines/pretrained/train_gft.py
+python baselines/pretrained/train_biomedclip.py    # pip install open_clip_torch
+python baselines/pretrained/train_dinov2.py         # pip install transformers
 ```
 
-All models use **identical dataset splits, preprocessing, and evaluation protocols**.
+### From-Scratch Baselines
 
+```bash
+python baselines/scratch/train_cnn.py
+python baselines/scratch/train_efficientnet_b0.py
+python baselines/scratch/train_swin_t.py
+python baselines/scratch/train_vit.py
+```
 ---
 
 ## 7. **Experimental Protocol (Reproducibility)**
@@ -249,28 +240,102 @@ Macro-averaged metrics are emphasized due to **class imbalance** inherent in rar
 
 | Model                | Accuracy   | Macro F1   | Weighted F1 |
 | -------------------- | ---------- | ---------- | ----------- |
-| **H-CoAtNet (Ours)** | **90.51%** | **0.8605** | **0.9024**  |
-| Swin Transformer     | 82.91%     | 0.7477     | 0.8150      |
-| GFT                  | 82.28%     | 0.7701     | 0.8221      |
-| CoAtNet              | 74.68%     | 0.6517     | 0.7463      |
-| Vision Transformer   | 72.15%     | 0.6310     | 0.7103      |
-| CNN                  | 69.62%     | 0.6085     | 0.6889      |
-| EfficientNet-B0      | 66.46%     | 0.5938     | 0.6675      |
+```
 
 ---
 
-## 10. **Ethical Considerations**
+## 4. **Ablation Study**
+
+```bash
+python evaluation/ablation.py --condition full
+python evaluation/ablation.py --condition no_hse
+python evaluation/ablation.py --condition no_transformer
+python evaluation/ablation.py --condition baseline
+```
+
+Results are appended to `ablation_results.csv` after each run.
+
+---
+
+## 5. **Cross-Validation and Statistical Tests**
+
+```bash
+python evaluation/crossval.py
+```
+
+Outputs:
+- `crossval_summary.txt` — mean ± std
+- `crossval_results.csv` — per-fold breakdown
+- `mcnemar_results.csv` — χ² and p-values vs all baselines
+- `fold_{k}_cm.png` — confusion matrix per fold (300 DPI)
+
+---
+
+## 6. **Grad-CAM Interpretability**
+
+```bash
+python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
+```
+
+Outputs:
+- `gradcam/<ClassName>_sample<N>.png` — individual overlays at 300 DPI
+- `gradcam/gradcam_grid.png` — publication-quality 5×3 grid
+
+---
+
+## 7. **Hyperparameter Table**
+
+| Parameter | H-CoAtNet | Pretrained Baselines |
+|---|---|---|
+| Backbone | ConvNeXt-Tiny (pretrained=True) | Model-specific (pretrained=True) |
+| Input resolution | 224 × 224 | 224 × 224 |
+| Batch size | 24 | 24 (ViT: 16) |
+| Epochs | 30 | 30 |
+| Optimiser | AdamW | AdamW (layer-wise LR) |
+| Backbone LR | 5e-5 | 1e-5 |
+| Head LR | 5e-5 | 1e-4 |
+| Weight decay | 0.01 | 0.01 |
+| LR schedule | CosineAnnealing (T_max=30) | CosineAnnealing |
+| Loss | CrossEntropy (label_smoothing=0.1, class_weights=True) | Same |
+| Dropout | 0.2 | 0.2 |
+| Random seed | 42 | 42 |
+| ViT blocks | 2 (dim=192, heads=6) | — |
+| HSE stages | 2 (keep 75%, then 50% tokens) | — |
+| Augmentation | RandomResizedCrop, HFlip, Rotation(15°), TrivialAugmentWide, RandomErasing(p=0.2) | Same |
+
+---
+
+## 8. **Results Summary**
+
+> **Note:** From-scratch baselines are retained for reference. Pretrained baselines are the primary comparison.
+
+| Model | Training | Accuracy | Macro F1 |
+|---|---|---|---|
+| **H-CoAtNet (Ours)** | Pretrained backbone | **To be updated after CV** | — |
+| EfficientNet-B0 | Pretrained (ImageNet) | — | — |
+| Swin-T | Pretrained (ImageNet) | — | — |
+| ViT-B/16 | Pretrained (ImageNet-21k) | — | — |
+| CoAtNet | Pretrained | — | — |
+| GFT | Pretrained | — | — |
+| EfficientNet-B0 | From scratch | 66.46% | 0.5938 |
+| Swin Transformer | From scratch | 82.91% | 0.7477 |
+| ViT | From scratch | 72.15% | 0.6310 |
+
+*Update this table with 5-fold CV mean ± std results from `crossval_summary.txt`.*
+
+---
+
+## 9. **Ethical Considerations**
 
 * No patient-identifiable data is used
-* Images are anonymized and sourced from publicly available materials
-* Intended strictly as a **clinical decision-support system**, not a standalone diagnostic tool
+* Images are sourced from publicly available materials
+* Intended strictly as a clinical decision-support tool, not a standalone diagnostic system
 
 ---
 
-## 11. **Contact**
+## 10. **Contact**
 
-**Anandhu P. Shaji**
-Email: [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
+**Anandhu P. Shaji** — [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
 
 ---
 

@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,18 +14,22 @@ from torchinfo import summary
 from sklearn.metrics import classification_report, confusion_matrix
 from roboflow import Roboflow
 
-
+# Reproducibility
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # Configuration
-
-API_KEY = "API KEY HERE"
+API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 24
 EPOCHS = 30
 LEARNING_RATE = 5e-5
 WEIGHT_DECAY = 0.01
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 
 # GFT Model Definition
@@ -153,7 +158,6 @@ class GFT(nn.Module):
         return self.head(final_tokens[:, 0])
 
 
-
 # Training, Evaluation, and Plotting
 
 def train_epoch(model, loader, criterion, optimizer):
@@ -211,7 +215,6 @@ def plot_curves(history):
         plt.tight_layout()
         plt.savefig(f'{metric}_curves.png', dpi=300)
         plt.show()
-
 
 
 # Main Execution Logic
@@ -311,9 +314,11 @@ def main():
     # 5. Final Evaluation
     print("\n--- Final Evaluation on Best Model ---")
     if os.path.exists('best_gft_model.pth'):
-        model.load_state_dict(torch.load('best_gft_model.pth'))
+        model.load_state_dict(torch.load('best_gft_model.pth', weights_only=True))
         _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, desc="Final Test")
         print(f"Final Test Accuracy: {final_test_acc:.4f}")
+        np.save('gft_y_true.npy', np.array(y_true))
+        np.save('gft_y_pred.npy', np.array(y_pred))
 
         print("\nClassification Report:")
         print(classification_report(y_true, y_pred, target_names=class_names, digits=4))

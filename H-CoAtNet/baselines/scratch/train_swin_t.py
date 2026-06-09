@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,18 +13,22 @@ from torchinfo import summary
 from sklearn.metrics import classification_report, confusion_matrix
 from roboflow import Roboflow
 
-
+# Reproducibility
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # Configuration
-
-API_KEY = "API KEY HERE"
+API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 16
 EPOCHS = 30
 LEARNING_RATE = 5e-5
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IN_CHANS = 3
-
 
 
 # Swin Transformer Components (from scratch)
@@ -246,7 +251,6 @@ class SwinTransformer(nn.Module):
         return self.head(self.avgpool(x).flatten(1))
 
 
-
 # Training, Evaluation, and Plotting
 
 def train_epoch(model, loader, criterion, optimizer, device):
@@ -302,7 +306,6 @@ def plot_curves(history):
         plt.show()
 
 
-
 # Main Execution Logic
 
 def main():
@@ -333,9 +336,12 @@ def main():
     val_dataset = datasets.ImageFolder(os.path.join(DATASET_DIR, "valid"), transform=val_test_transform)
     test_dataset = datasets.ImageFolder(os.path.join(DATASET_DIR, "test"), transform=val_test_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    num_workers = 0 if os.name == 'nt' else 2
+    g = torch.Generator()
+    g.manual_seed(RANDOM_SEED)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, generator=g)
+    val_loader   = DataLoader(val_dataset,   batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
+    test_loader  = DataLoader(test_dataset,  batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
 
     class_names = train_dataset.classes
     num_classes = len(class_names)
@@ -389,9 +395,11 @@ def main():
     # 5. Final Evaluation
     print("\n--- Final Evaluation on Best Model ---")
     if os.path.exists('best_swin_from_scratch.pth'):
-        model.load_state_dict(torch.load('best_swin_from_scratch.pth'))
+        model.load_state_dict(torch.load('best_swin_from_scratch.pth', weights_only=True))
         _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, DEVICE, desc="Final Test")
         print(f"Final Test Accuracy: {final_test_acc:.4f}")
+        np.save('swin_scratch_y_true.npy', np.array(y_true))
+        np.save('swin_scratch_y_pred.npy', np.array(y_pred))
 
         print("\nClassification Report:")
         print(classification_report(y_true, y_pred, target_names=class_names, digits=4))

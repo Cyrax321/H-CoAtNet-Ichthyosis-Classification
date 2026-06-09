@@ -1,7 +1,7 @@
 import os
+import random
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import numpy as np
@@ -13,18 +13,22 @@ from torchinfo import summary
 from sklearn.metrics import classification_report, confusion_matrix
 from roboflow import Roboflow
 
-
+# Reproducibility
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # Configuration
-
-API_KEY = "API KEY HERE"
+API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 24
 EPOCHS = 30
 LEARNING_RATE = 5e-5
 WEIGHT_DECAY = 0.01
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 
 # CoAtNet Baseline Model Definition
@@ -41,7 +45,6 @@ class CoAtNet(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-
 
 
 # Training, Evaluation, and Plotting
@@ -103,7 +106,6 @@ def plot_curves(history):
         plt.show()
 
 
-
 # Main Execution Logic
 
 def main():
@@ -135,15 +137,17 @@ def main():
     validation_dataset = datasets.ImageFolder(os.path.join(DATASET_DIR, "valid"), transform=val_test_transform)
     test_dataset = datasets.ImageFolder(os.path.join(DATASET_DIR, "test"), transform=val_test_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    validation_loader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    num_workers = 0 if os.name == 'nt' else 2
+    g = torch.Generator()
+    g.manual_seed(RANDOM_SEED)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, generator=g)
+    validation_loader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
 
     class_names = train_dataset.classes
     num_classes = len(class_names)
     print(f"Found {num_classes} classes: {class_names}")
 
-    # 3. Model Initialization
     model = CoAtNet(num_classes=num_classes, pretrained=True).to(DEVICE)
 
     # Class Weights
@@ -197,9 +201,11 @@ def main():
     # 5. Final Evaluation
     print("\n--- Final Evaluation on Best Model ---")
     if os.path.exists('best_coatnet_baseline.pth'):
-        model.load_state_dict(torch.load('best_coatnet_baseline.pth'))
+        model.load_state_dict(torch.load('best_coatnet_baseline.pth', weights_only=True))
         _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, desc="Final Test")
         print(f"Final Test Accuracy: {final_test_acc:.4f}")
+        np.save('coatnet_y_true.npy', np.array(y_true))
+        np.save('coatnet_y_pred.npy', np.array(y_pred))
 
         print("\nClassification Report:")
         print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
