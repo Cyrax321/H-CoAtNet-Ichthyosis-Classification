@@ -114,7 +114,7 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
                 self.pos_embed = nn.Parameter(torch.zeros(1, 28 * 28, vit_dim))
                 nn.init.trunc_normal_(self.pos_embed, std=0.02)
                 self.vit_blocks = nn.ModuleList([
-                    Block(dim=vit_dim, num_heads=6, drop=DROPOUT, attn_drop=DROPOUT * 0.5)
+                    Block(dim=vit_dim, num_heads=6, proj_drop=DROPOUT, attn_drop=DROPOUT * 0.5)
                     for _ in range(2)
                 ])
 

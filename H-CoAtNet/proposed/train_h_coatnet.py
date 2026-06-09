@@ -138,7 +138,7 @@ class HCoAtNet(nn.Module):
         self.pos_embed = nn.Parameter(torch.zeros(1, num_vit_tokens, vit_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
         self.vit_blocks = nn.ModuleList([
-            Block(dim=vit_dim, num_heads=6, drop=dropout, attn_drop=dropout * 0.5)
+            Block(dim=vit_dim, num_heads=6, proj_drop=dropout, attn_drop=dropout * 0.5)
             for _ in range(vit_blocks)
         ])
 
