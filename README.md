@@ -41,9 +41,8 @@ Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan
 After cloning, note that the **actual project root** is the inner `H-CoAtNet/` directory.
 
 ```bash
-git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis.git
-cd H-CoAtNet-Ichthyosis
-cd H-CoAtNet
+git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis-Classification.git
+cd H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 ```
 
 All commands **must be executed from this directory**.

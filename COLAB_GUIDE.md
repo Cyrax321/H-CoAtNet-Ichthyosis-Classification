@@ -17,8 +17,8 @@ os.makedirs('/content/drive/MyDrive/HCoAtNet_experiments', exist_ok=True)
 
 ```bash
 %%bash
-git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis.git
-cd H-CoAtNet-Ichthyosis/H-CoAtNet
+git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis-Classification.git
+cd H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 pip install -q -r requirements.txt
 ```
 
