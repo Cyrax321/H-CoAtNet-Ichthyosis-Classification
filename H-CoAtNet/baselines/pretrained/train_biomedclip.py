@@ -40,12 +40,11 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BIOMEDCLIP_MODEL = "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224"
 
 TARGET_SIZE  = (224, 224)
-BATCH_SIZE   = 24
+BATCH_SIZE   = 16
 EPOCHS       = 30
 LR_BACKBONE  = 1e-5
 LR_HEAD      = 1e-4
 WEIGHT_DECAY = 0.01
-
 
 
 # ── BiomedCLIP Vision Classifier ─────────────────────────────────────────────

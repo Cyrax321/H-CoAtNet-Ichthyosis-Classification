@@ -39,12 +39,11 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 DINOV2_MODEL = "facebook/dinov2-base"   # 86M params, ViT-B/14
 
 TARGET_SIZE  = (224, 224)
-BATCH_SIZE   = 24
+BATCH_SIZE   = 16
 EPOCHS       = 30
 LR_BACKBONE  = 1e-5
 LR_HEAD      = 1e-4
 WEIGHT_DECAY = 0.01
-
 
 
 # ── DINOv2 Classifier ─────────────────────────────────────────────────────────
