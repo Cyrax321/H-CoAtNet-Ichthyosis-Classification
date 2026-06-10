@@ -482,6 +482,13 @@ def main():
     dataset = rf.workspace("hi-l9ueo").project("ich-s-7lnsj").version(1).download("folder")
     DATASET_DIR = dataset.location
 
+    # Fix: Roboflow may name the folder 'validation' instead of 'valid'
+    valid_path = os.path.join(DATASET_DIR, "valid")
+    validation_path = os.path.join(DATASET_DIR, "validation")
+    if not os.path.exists(valid_path) and os.path.exists(validation_path):
+        os.rename(validation_path, valid_path)
+        print(f"  Renamed 'validation' -> 'valid'")
+
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(), transforms.RandomRotation(15),
