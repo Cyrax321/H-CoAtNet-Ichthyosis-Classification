@@ -604,11 +604,15 @@ def train_epoch(model, loader, criterion, optimizer, sctr_weight=SCTR_WEIGHT):
         loss = ce_loss + sctr_weight * sctr_loss
 
         loss.backward()
-        optimizer.step()
 
-        # EMA prototype update (no gradients)
+        # EMA prototype update BEFORE weight mutation so prototypes
+        # remain synchronised with the embedding space that produced them.
+        # (embeddings were computed with the current weights; updating
+        # prototypes after optimizer.step() would use stale representations.)
         model.pa_dts.update_prototypes(embeddings.detach(), targets,
                                         momentum=PROTO_MOMENTUM)
+
+        optimizer.step()
 
         total_loss += loss.item()
         total_ce += ce_loss.item()

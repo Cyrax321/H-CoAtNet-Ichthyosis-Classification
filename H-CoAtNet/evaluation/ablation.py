@@ -416,10 +416,10 @@ def train_epoch(model, loader, criterion, optimizer, use_sctr=True, sctr_weight=
         else:
             loss = ce
         loss.backward()
-        optimizer.step()
-        # Prototype EMA update
+        # Prototype EMA update before weight mutation
         if hasattr(model, 'token_selector') and hasattr(model.token_selector, 'update_prototypes'):
             model.token_selector.update_prototypes(emb.detach(), tgts, PROTO_MOM)
+        optimizer.step()
         total_loss += loss.item()
         preds.extend(logits.argmax(1).cpu().numpy())
         targets.extend(tgts.cpu().numpy())
