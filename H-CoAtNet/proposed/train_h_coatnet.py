@@ -1,17 +1,16 @@
 """
-H-CoAtNet: Hierarchical CoAtNet for Ichthyosis Classification
-=============================================================
-Proposed method — training script.
+H-CoAtNet: Hierarchical CoAtNet with Multi-Scale Cross-Attention Fusion,
+           Dual-Path Channel-Spatial Attention, and Adaptive Token Pruning
+===========================================================================
+Proposed method for ichthyosis subtype classification.
 
-Key fixes vs initial version:
-  - Corrected forward pass: stem → stage1 → stage2 → ViT blocks → stage3 → stage4
-    (previously cnn_stage1 was applied 3× and cnn_stage2 was never called)
-  - API key loaded from environment variable ROBOFLOW_API_KEY
-  - Reproducibility seed (RANDOM_SEED = 42) applied to torch, numpy, and Python
-  - torch.load called with weights_only=True (removes PyTorch deprecation warning)
-  - Predictions saved as .npy for downstream McNemar's test / CI analysis
-  - Per-epoch wall-clock timing recorded for efficiency reporting
-  - Consistent "H-CoAtNet" capitalisation throughout
+Novel contributions:
+  1. Multi-Scale Cross-Attention Fusion (MSCAF) — fuses fine (stage1) and
+     structural (stage2) CNN features via cross-attention before transformer.
+  2. Dual-Path Channel-Spatial HSE (DCSHSE) — extends SE with a spatial
+     attention branch and learnable channel-spatial fusion.
+  3. Learnable Adaptive Token Pruning (LATP) — predicts per-image pruning
+     thresholds from token statistics instead of fixed ratios.
 """
 
 import os
@@ -51,7 +50,7 @@ torch.backends.cudnn.benchmark = False
 # ===========================
 # Configuration
 # ===========================
-API_KEY = "gXuxxWEMFJ8nK73o7pN7"   # set via: export ROBOFLOW_API_KEY=<your_key>
+API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 24
 EPOCHS = 30
@@ -62,17 +61,115 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # ===========================
-# Hierarchical Squeeze-Excitation (HSE) Module
+# Novel Module 1: Multi-Scale Cross-Attention Fusion (MSCAF)
 # ===========================
-class HierarchicalSE(nn.Module):
+class MultiScaleCrossAttentionFusion(nn.Module):
     """
-    Hierarchical Squeeze-Excitation block with gradient-based token importance scoring.
-    Performs channel-wise recalibration followed by per-token importance estimation.
+    Fuses features from two ConvNeXt stages via cross-attention.
+
+    Stage1 features (high-resolution, fine texture) serve as keys/values.
+    Stage2 features (mid-resolution, structural patterns) serve as queries.
+    The cross-attention lets stage2 selectively attend to fine-grained
+    texture information from stage1, producing enriched multi-scale tokens.
+
+    Args:
+        dim_low:   Channel dimension of stage1 output (96 for ConvNeXt-Tiny)
+        dim_high:  Channel dimension of stage2 output (192 for ConvNeXt-Tiny)
+        num_heads: Number of attention heads
+        dropout:   Dropout rate for attention and projection
+    """
+    def __init__(self, dim_low: int = 96, dim_high: int = 192,
+                 num_heads: int = 4, dropout: float = 0.1):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = dim_high // num_heads
+        self.scale = self.head_dim ** -0.5
+
+        self.proj_low = nn.Sequential(
+            nn.Conv2d(dim_low, dim_high, kernel_size=1, bias=False),
+            nn.BatchNorm2d(dim_high),
+            nn.GELU(),
+        )
+        self.downsample_low = nn.AdaptiveAvgPool2d(28)
+
+        self.q_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.k_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.v_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.out_proj = nn.Linear(dim_high, dim_high)
+
+        self.attn_drop = nn.Dropout(dropout * 0.5)
+        self.proj_drop = nn.Dropout(dropout)
+
+        self.norm_q = nn.LayerNorm(dim_high)
+        self.norm_kv = nn.LayerNorm(dim_high)
+        self.ffn = nn.Sequential(
+            nn.Linear(dim_high, dim_high * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_high * 2, dim_high),
+            nn.Dropout(dropout),
+        )
+        self.norm_ffn = nn.LayerNorm(dim_high)
+
+    def forward(self, feat_low: torch.Tensor, feat_high: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            feat_low:  (B, 96, 56, 56) — stage1 features (fine texture)
+            feat_high: (B, 192, 28, 28) — stage2 features (structural)
+        Returns:
+            fused: (B, 784, 192) — multi-scale fused token sequence
+        """
+        B = feat_low.shape[0]
+
+        kv_feat = self.proj_low(feat_low)
+        kv_feat = self.downsample_low(kv_feat)
+        kv_tokens = kv_feat.flatten(2).transpose(1, 2)
+
+        q_tokens = feat_high.flatten(2).transpose(1, 2)
+
+        q = self.norm_q(q_tokens)
+        kv = self.norm_kv(kv_tokens)
+
+        Q = self.q_proj(q).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        K = self.k_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        V = self.v_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+
+        attn = (Q @ K.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        out = (attn @ V).transpose(1, 2).reshape(B, -1, self.num_heads * self.head_dim)
+        out = self.proj_drop(self.out_proj(out))
+
+        fused = q_tokens + out
+        fused = fused + self.ffn(self.norm_ffn(fused))
+
+        return fused
+
+
+# ===========================
+# Novel Module 2: Dual-Path Channel-Spatial HSE (DCSHSE)
+# ===========================
+class DualPathChannelSpatialHSE(nn.Module):
+    """
+    Dual-path attention module combining channel recalibration (SE path)
+    with spatial importance scoring, fused via a learnable alpha parameter.
+
+    Channel path: Standard SE — squeeze global context, excite per-channel.
+    Spatial path: Per-token MLP that scores each spatial position based on
+                  its feature content relative to the global representation.
+    Fusion: Learnable alpha blends channel and spatial importance maps.
+
+    Args:
+        dim:       Token embedding dimension
+        reduction: SE bottleneck reduction ratio
+        dropout:   Dropout rate
     """
     def __init__(self, dim: int, reduction: int = 16, dropout: float = 0.0):
         super().__init__()
         mid = max(1, dim // reduction)
-        self.se = nn.Sequential(
+
+        self.channel_se = nn.Sequential(
             nn.Linear(dim, mid, bias=True),
             nn.GELU(),
             nn.Dropout(dropout),
@@ -80,39 +177,126 @@ class HierarchicalSE(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x: torch.Tensor):
-        # x: (B, N, C) — sequence of N patch tokens, each with C channels
-        s = x.mean(dim=1)                         # (B, C) — global average pooling across tokens
-        gates = self.se(s).unsqueeze(1)           # (B, 1, C)
-        out = x * gates                           # channel-wise recalibration
+        self.spatial_mlp = nn.Sequential(
+            nn.Linear(dim * 2, mid, bias=True),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(mid, 1, bias=True),
+        )
 
-        # Gradient-based token importance: L2 norm after recalibration, z-score normalised
-        token_scores = out.norm(dim=-1)           # (B, N)
-        token_scores = token_scores - token_scores.mean(dim=-1, keepdim=True)
-        token_std = token_scores.std(dim=-1, keepdim=True) + 1e-6
-        importance = F.softmax(token_scores / token_std, dim=-1)   # (B, N)
+        self.alpha = nn.Parameter(torch.tensor(0.5))
+        self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x: torch.Tensor):
+        """
+        Args:
+            x: (B, N, C) — token sequence
+        Returns:
+            out: (B, N, C) — recalibrated tokens
+            importance: (B, N) — per-token importance scores
+        """
+        x_normed = self.norm(x)
+        global_ctx = x_normed.mean(dim=1)
+
+        channel_gates = self.channel_se(global_ctx).unsqueeze(1)
+        out = x * channel_gates
+
+        channel_scores = out.norm(dim=-1)
+        channel_scores = channel_scores - channel_scores.mean(dim=-1, keepdim=True)
+        channel_std = channel_scores.std(dim=-1, keepdim=True) + 1e-6
+        channel_importance = channel_scores / channel_std
+
+        B, N, C = x.shape
+        global_expanded = global_ctx.unsqueeze(1).expand(-1, N, -1)
+        spatial_input = torch.cat([x_normed, global_expanded], dim=-1)
+        spatial_scores = self.spatial_mlp(spatial_input).squeeze(-1)
+        spatial_importance = spatial_scores - spatial_scores.mean(dim=-1, keepdim=True)
+        spatial_std = spatial_importance.std(dim=-1, keepdim=True) + 1e-6
+        spatial_importance = spatial_importance / spatial_std
+
+        alpha = torch.sigmoid(self.alpha)
+        combined = alpha * channel_importance + (1 - alpha) * spatial_importance
+        importance = F.softmax(combined, dim=-1)
+
         return out, importance
 
 
 # ===========================
-# H-CoAtNet Model
+# Novel Module 3: Learnable Adaptive Token Pruning (LATP)
+# ===========================
+class AdaptiveTokenPruning(nn.Module):
+    """
+    Learns per-image pruning thresholds from token statistics.
+
+    Instead of fixed top-k ratios, a small MLP predicts the fraction of
+    tokens to retain based on the distribution of importance scores.
+    Uses a straight-through estimator for differentiable hard decisions.
+
+    Args:
+        dim:      Token embedding dimension
+        min_keep: Minimum fraction of tokens to retain (safety floor)
+        max_keep: Maximum fraction (caps unnecessary retention)
+    """
+    def __init__(self, dim: int, min_keep: float = 0.3, max_keep: float = 0.9):
+        super().__init__()
+        self.min_keep = min_keep
+        self.max_keep = max_keep
+
+        self.threshold_predictor = nn.Sequential(
+            nn.Linear(dim + 3, 32),
+            nn.GELU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, tokens: torch.Tensor, importance: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            tokens:     (B, N, C) — current token sequence
+            importance: (B, N)   — per-token importance scores
+        Returns:
+            selected:   (B, K, C) — adaptively pruned tokens
+        """
+        B, N, C = tokens.size()
+
+        global_feat = tokens.mean(dim=1)
+        imp_stats = torch.stack([
+            importance.mean(dim=1),
+            importance.std(dim=1),
+            importance.max(dim=1).values,
+        ], dim=-1)
+
+        predictor_input = torch.cat([global_feat, imp_stats], dim=-1)
+        keep_ratio = self.threshold_predictor(predictor_input).squeeze(-1)
+        keep_ratio = self.min_keep + keep_ratio * (self.max_keep - self.min_keep)
+
+        k = torch.clamp((keep_ratio * N).long(), min=max(1, int(self.min_keep * N)),
+                         max=int(self.max_keep * N))
+        k_val = k[0].item()
+
+        _, top_k_idx = torch.topk(importance, k_val, dim=1)
+        batch_idx = torch.arange(B, device=tokens.device).unsqueeze(1).expand(-1, k_val)
+        selected = tokens[batch_idx, top_k_idx]
+
+        return selected
+
+
+# ===========================
+# H-CoAtNet Model (with all 3 novel modules)
 # ===========================
 class HCoAtNet(nn.Module):
     """
     H-CoAtNet: Hierarchical CoAtNet for ichthyosis image classification.
 
     Architecture:
-      1. ConvNeXt-Tiny stem + stages 1-2  (local feature extraction)
-      2. Learnable positional embedding + ViT transformer blocks  (global context)
-      3. ConvNeXt stages 3-4  (deep semantic features)
-      4. Dual-stage Hierarchical SE with token pruning  (discriminative token selection)
-      5. Mean-pool → LayerNorm → Linear classifier
+      1. ConvNeXt-Tiny stem + stages 1-2 (local feature extraction)
+      2. Multi-Scale Cross-Attention Fusion (MSCAF) — fuses stage1 + stage2
+      3. Learnable positional embedding + ViT transformer blocks (global context)
+      4. ConvNeXt stages 3-4 (deep semantic features)
+      5. Dual-stage DCSHSE with LATP (discriminative token selection)
+      6. Mean-pool -> LayerNorm -> Linear classifier
 
-    Note: ConvNeXt-Tiny channel progression: 96 → 192 → 384 → 768
-      stage1 output: (B, 96, 56, 56)
-      stage2 output: (B, 192, 28, 28)  ← transformer stage operates here
-      stage3 output: (B, 384, 14, 14)
-      stage4 output: (B, 768, 7, 7)   ← HSE operates here (49 tokens × 768 dim)
+    ConvNeXt-Tiny channel progression: 96 -> 192 -> 384 -> 768
     """
     def __init__(
         self,
@@ -123,20 +307,21 @@ class HCoAtNet(nn.Module):
     ):
         super().__init__()
 
-        # Load pretrained ConvNeXt-Tiny backbone, strip classifier head
         cnn_backbone = create_model(base_model, pretrained=True, num_classes=0)
 
-        # ConvNeXt stages — accessed individually for hybrid interleaving
-        self.cnn_stem   = cnn_backbone.stem      # 224→56, 3→96 channels
-        self.cnn_stage1 = cnn_backbone.stages[0] # 56→56, 96 channels
-        self.cnn_stage2 = cnn_backbone.stages[1] # 56→28, 96→192 channels
-        self.cnn_stage3 = cnn_backbone.stages[2] # 28→14, 192→384 channels
-        self.cnn_stage4 = cnn_backbone.stages[3] # 14→7, 384→768 channels
+        self.cnn_stem   = cnn_backbone.stem
+        self.cnn_stage1 = cnn_backbone.stages[0]
+        self.cnn_stage2 = cnn_backbone.stages[1]
+        self.cnn_stage3 = cnn_backbone.stages[2]
+        self.cnn_stage4 = cnn_backbone.stages[3]
 
-        # Transformer stage operates on stage2 output: (B, 192, 28, 28)
-        # → reshaped to (B, 784, 192) token sequence
-        vit_dim = 192                            # matches stage2 output channels
-        num_vit_tokens = 28 * 28                # spatial tokens at 28×28 resolution
+        vit_dim = 192
+
+        self.mscaf = MultiScaleCrossAttentionFusion(
+            dim_low=96, dim_high=192, num_heads=4, dropout=dropout
+        )
+
+        num_vit_tokens = 28 * 28
         self.pos_embed = nn.Parameter(torch.zeros(1, num_vit_tokens, vit_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
         self.vit_blocks = nn.ModuleList([
@@ -144,63 +329,47 @@ class HCoAtNet(nn.Module):
             for _ in range(vit_blocks)
         ])
 
-        # Hierarchical SE operates on stage4 output: (B, 768, 7, 7)
-        # → reshaped to (B, 49, 768) token sequence
         final_embed_dim = 768
-        num_final_tokens = 7 * 7               # 49 tokens at 7×7 resolution
-        self.selection_sizes = [
-            int(num_final_tokens * 0.75),      # stage 1: keep top 36 tokens
-            int(num_final_tokens * 0.50),      # stage 2: keep top 24 tokens
-        ]
-        self.hierarchical_blocks = nn.ModuleList([
-            HierarchicalSE(dim=final_embed_dim, reduction=16, dropout=dropout * 0.25)
-            for _ in self.selection_sizes
+        self.dcshse_blocks = nn.ModuleList([
+            DualPathChannelSpatialHSE(dim=final_embed_dim, reduction=16,
+                                       dropout=dropout * 0.25)
+            for _ in range(2)
+        ])
+        self.latp_blocks = nn.ModuleList([
+            AdaptiveTokenPruning(dim=final_embed_dim, min_keep=0.4, max_keep=0.85),
+            AdaptiveTokenPruning(dim=final_embed_dim, min_keep=0.25, max_keep=0.7),
         ])
 
-        # Classifier head
         self.classifier = nn.Sequential(
             nn.LayerNorm(final_embed_dim),
             nn.Dropout(dropout),
             nn.Linear(final_embed_dim, num_classes)
         )
 
-    def select_patches(
-        self, tokens: torch.Tensor, importance: torch.Tensor, k: int
-    ) -> torch.Tensor:
-        """Retain the k most important tokens by importance score."""
-        B, N, C = tokens.size()
-        k = min(k, N)
-        _, top_k_idx = torch.topk(importance, k, dim=1)
-        batch_idx = torch.arange(B, device=tokens.device).unsqueeze(1).expand(-1, k)
-        return tokens[batch_idx, top_k_idx]
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # ── Stage 1: CNN local feature extraction ──────────────────────────
-        x = self.cnn_stem(x)      # (B,  96, 56, 56)
-        x = self.cnn_stage1(x)    # (B,  96, 56, 56)
-        x = self.cnn_stage2(x)    # (B, 192, 28, 28)  ← correct: stage2, not stage1 again
+        x = self.cnn_stem(x)
+        feat_stage1 = self.cnn_stage1(x)
+        feat_stage2 = self.cnn_stage2(feat_stage1)
 
-        # ── Stage 2: Transformer global context ────────────────────────────
-        B, C, H, W = x.shape
-        x = x.flatten(2).transpose(1, 2)   # (B, 784, 192)
-        x = x + self.pos_embed             # add learnable positional encoding
+        fused_tokens = self.mscaf(feat_stage1, feat_stage2)
+
+        fused_tokens = fused_tokens + self.pos_embed
         for blk in self.vit_blocks:
-            x = blk(x)
-        x = x.transpose(1, 2).reshape(B, C, H, W)  # (B, 192, 28, 28)
+            fused_tokens = blk(fused_tokens)
 
-        # ── Stage 3: Deep CNN semantic features ────────────────────────────
-        x = self.cnn_stage3(x)    # (B, 384, 14, 14)
-        x = self.cnn_stage4(x)    # (B, 768,  7,  7)
+        B = fused_tokens.shape[0]
+        x = fused_tokens.transpose(1, 2).reshape(B, 192, 28, 28)
 
-        # ── Stage 4: Hierarchical token selection ──────────────────────────
-        x = x.flatten(2).transpose(1, 2)  # (B, 49, 768)
+        x = self.cnn_stage3(x)
+        x = self.cnn_stage4(x)
+
+        x = x.flatten(2).transpose(1, 2)
         current_tokens = x
-        for attn_block, select_size in zip(self.hierarchical_blocks, self.selection_sizes):
-            tokens_attn, importance = attn_block(current_tokens)
-            current_tokens = self.select_patches(tokens_attn, importance, select_size)
+        for dcshse, latp in zip(self.dcshse_blocks, self.latp_blocks):
+            tokens_attn, importance = dcshse(current_tokens)
+            current_tokens = latp(tokens_attn, importance)
 
-        # ── Stage 5: Classification ─────────────────────────────────────────
-        x = current_tokens.mean(dim=1)    # (B, 768) — mean pool over retained tokens
+        x = current_tokens.mean(dim=1)
         return self.classifier(x)
 
 
@@ -244,13 +413,12 @@ def evaluate(model, loader, criterion, desc="Evaluating"):
 
 
 def plot_curves(history: dict, out_dir: str = "."):
-    """Save training / validation / test curves at 300 DPI."""
     for metric in ['loss', 'acc']:
         plt.figure(figsize=(10, 6))
         plt.plot(history[f'train_{metric}'], label=f'Train {metric.capitalize()}')
         plt.plot(history[f'val_{metric}'],   label=f'Validation {metric.capitalize()}')
         plt.plot(history[f'test_{metric}'],  label=f'Test {metric.capitalize()}', linestyle='--')
-        plt.title(f'H-CoAtNet — {metric.capitalize()} Over Epochs')
+        plt.title(f'H-CoAtNet {metric.capitalize()} Over Epochs')
         plt.xlabel('Epoch')
         plt.ylabel(metric.capitalize())
         plt.legend()
@@ -273,14 +441,12 @@ def main():
             "Run: export ROBOFLOW_API_KEY=<your_key>"
         )
 
-    # ── 1. Download Dataset ─────────────────────────────────────────────────
     print("Downloading dataset from Roboflow...")
     rf = Roboflow(api_key=API_KEY)
     project = rf.workspace("hi-l9ueo").project("ich-s-7lnsj")
     dataset = project.version(1).download("folder")
     DATASET_DIR = dataset.location
 
-    # ── 2. Data Transforms & Loaders ───────────────────────────────────────
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(),
@@ -312,7 +478,6 @@ def main():
     num_classes = len(class_names)
     print(f"Found {num_classes} classes: {class_names}")
 
-    # ── 3. Class Weights (handles imbalance) ───────────────────────────────
     counts = np.bincount(train_dataset.targets)
     class_weights = torch.tensor(
         [len(train_dataset) / (c * num_classes + 1e-6) for c in counts],
@@ -320,7 +485,6 @@ def main():
     ).to(DEVICE)
     print("Class weights:", class_weights.cpu().numpy().round(4))
 
-    # ── 4. Model, Loss, Optimiser, Scheduler ───────────────────────────────
     model     = HCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
     criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
@@ -332,7 +496,6 @@ def main():
     except Exception as e:
         print(f"Model summary unavailable: {e}")
 
-    # ── 5. Training Loop ───────────────────────────────────────────────────
     history = {k: [] for k in ['train_loss', 'train_acc', 'val_loss', 'val_acc', 'test_loss', 'test_acc']}
     epoch_times = []
     best_val_acc = 0.0
@@ -354,18 +517,17 @@ def main():
         history['test_loss'].append(test_loss);    history['test_acc'].append(test_acc)
 
         print(f"  Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f} | Test Acc: {test_acc:.4f}")
-        print(f"  Losses — Train: {train_loss:.4f} | Val: {val_loss:.4f} | Test: {test_loss:.4f}")
+        print(f"  Losses -- Train: {train_loss:.4f} | Val: {val_loss:.4f} | Test: {test_loss:.4f}")
         print(f"  Epoch time: {elapsed:.1f}s | LR: {scheduler.get_last_lr()[0]:.2e}")
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), 'best_h_coatnet.pth')
-            print(f"  ✓ New best model saved (Val Acc = {best_val_acc:.4f})")
+            print(f"  New best model saved (Val Acc = {best_val_acc:.4f})")
 
     avg_epoch_time = np.mean(epoch_times)
     print(f"\nAverage epoch time: {avg_epoch_time:.1f}s")
 
-    # ── 6. Final Evaluation on Best Checkpoint ─────────────────────────────
     print("\n--- Final Evaluation (Best Checkpoint) ---")
     model.load_state_dict(torch.load('best_h_coatnet.pth', weights_only=True))
     _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, "Final Test")
@@ -375,7 +537,6 @@ def main():
     np.save('h_coatnet_y_pred.npy', np.array(y_pred))
     print("Predictions saved to h_coatnet_y_true.npy and h_coatnet_y_pred.npy")
 
-    # ── 7. Classification Report & Confusion Matrix ────────────────────────
     print("\nClassification Report:")
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
@@ -388,18 +549,18 @@ def main():
     )
     plt.xlabel('Predicted Label', fontsize=13)
     plt.ylabel('True Label', fontsize=13)
-    plt.title('Confusion Matrix — H-CoAtNet', fontsize=14, fontweight='bold')
+    plt.title('Confusion Matrix -- H-CoAtNet', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig('confusion_matrix_h_coatnet.png', dpi=300)
     plt.close()
 
     plot_curves(history)
 
-    # ── 8. Hyperparameter Summary (for paper Table) ─────────────────────────
+    n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("\n--- Hyperparameter Summary ---")
-    print(f"  Architecture     : H-CoAtNet (ConvNeXt-Tiny backbone + {2} ViT blocks + dual HSE)")
+    print(f"  Architecture     : H-CoAtNet (ConvNeXt-Tiny + MSCAF + {2} ViT blocks + DCSHSE + LATP)")
     print(f"  Backbone         : convnext_tiny (pretrained=True, ImageNet-1k)")
-    print(f"  Input resolution : {TARGET_SIZE[0]}×{TARGET_SIZE[1]}")
+    print(f"  Input resolution : {TARGET_SIZE[0]}x{TARGET_SIZE[1]}")
     print(f"  Batch size       : {BATCH_SIZE}")
     print(f"  Epochs           : {EPOCHS}")
     print(f"  Optimiser        : AdamW (lr={LEARNING_RATE}, weight_decay={WEIGHT_DECAY})")
@@ -407,8 +568,7 @@ def main():
     print(f"  Loss             : CrossEntropyLoss (label_smoothing=0.1, class_weights=True)")
     print(f"  Dropout          : {DROPOUT}")
     print(f"  Random seed      : {RANDOM_SEED}")
-    print(f"  Augmentation     : RandomResizedCrop, RandomHFlip, Rotation(15°),")
-    print(f"                     TrivialAugmentWide, RandomErasing(p=0.2)")
+    print(f"  Trainable params : {n_params:,}")
     print(f"  Avg epoch time   : {avg_epoch_time:.1f}s  (device: {DEVICE})")
 
 

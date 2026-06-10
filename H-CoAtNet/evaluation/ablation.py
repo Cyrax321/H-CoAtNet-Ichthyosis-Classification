@@ -1,18 +1,19 @@
 """
 H-CoAtNet: Ablation Study
 =========================
-Trains four model conditions to isolate the contribution of each architectural component.
+Trains six model conditions to isolate the contribution of each novel module.
 All conditions use identical hyperparameters, seed, and data split.
 
-Usage:
-    python proposed_method/train_ablation.py --condition full
-    python proposed_method/train_ablation.py --condition no_hse
-    python proposed_method/train_ablation.py --condition no_transformer
-    python proposed_method/train_ablation.py --condition baseline
+Conditions:
+  full             -- H-CoAtNet (all novel components: MSCAF + ViT + DCSHSE + LATP)
+  no_mscaf         -- Single-scale input to ViT (removes cross-attention fusion)
+  no_transformer   -- CNN + DCSHSE only (removes ViT blocks and MSCAF)
+  no_dcshse        -- MSCAF + ViT, but uses global avg pool instead of DCSHSE+LATP
+  fixed_pruning    -- MSCAF + ViT + old HSE with fixed 75/50% pruning ratios
+  baseline         -- Plain ConvNeXt-Tiny fine-tuned
 
-Outputs:
-    ablation_results.csv          -- one row per condition
-    ablation_{condition}_cm.png   -- confusion matrix at 300 DPI
+Usage:
+    python evaluation/ablation.py --condition full
 """
 
 import os
@@ -55,27 +56,120 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_CSV  = "ablation_results.csv"
 
 
-# ── Model building blocks ────────────────────────────────────────────────────
+# ── Novel modules (mirrored from train_h_coatnet.py) ────────────────────────
+
+class MultiScaleCrossAttentionFusion(nn.Module):
+    def __init__(self, dim_low=96, dim_high=192, num_heads=4, dropout=0.1):
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = dim_high // num_heads
+        self.scale = self.head_dim ** -0.5
+        self.proj_low = nn.Sequential(
+            nn.Conv2d(dim_low, dim_high, kernel_size=1, bias=False),
+            nn.BatchNorm2d(dim_high), nn.GELU())
+        self.downsample_low = nn.AdaptiveAvgPool2d(28)
+        self.q_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.k_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.v_proj = nn.Linear(dim_high, dim_high, bias=False)
+        self.out_proj = nn.Linear(dim_high, dim_high)
+        self.attn_drop = nn.Dropout(dropout * 0.5)
+        self.proj_drop = nn.Dropout(dropout)
+        self.norm_q = nn.LayerNorm(dim_high)
+        self.norm_kv = nn.LayerNorm(dim_high)
+        self.ffn = nn.Sequential(
+            nn.Linear(dim_high, dim_high * 2), nn.GELU(), nn.Dropout(dropout),
+            nn.Linear(dim_high * 2, dim_high), nn.Dropout(dropout))
+        self.norm_ffn = nn.LayerNorm(dim_high)
+
+    def forward(self, feat_low, feat_high):
+        B = feat_low.shape[0]
+        kv_feat = self.downsample_low(self.proj_low(feat_low))
+        kv_tokens = kv_feat.flatten(2).transpose(1, 2)
+        q_tokens = feat_high.flatten(2).transpose(1, 2)
+        q = self.norm_q(q_tokens)
+        kv = self.norm_kv(kv_tokens)
+        Q = self.q_proj(q).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        K = self.k_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        V = self.v_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        attn = (Q @ K.transpose(-2, -1)) * self.scale
+        attn = self.attn_drop(attn.softmax(dim=-1))
+        out = (attn @ V).transpose(1, 2).reshape(B, -1, self.num_heads * self.head_dim)
+        out = self.proj_drop(self.out_proj(out))
+        fused = q_tokens + out
+        fused = fused + self.ffn(self.norm_ffn(fused))
+        return fused
+
+
+class DualPathChannelSpatialHSE(nn.Module):
+    def __init__(self, dim, reduction=16, dropout=0.0):
+        super().__init__()
+        mid = max(1, dim // reduction)
+        self.channel_se = nn.Sequential(
+            nn.Linear(dim, mid, bias=True), nn.GELU(), nn.Dropout(dropout),
+            nn.Linear(mid, dim, bias=True), nn.Sigmoid())
+        self.spatial_mlp = nn.Sequential(
+            nn.Linear(dim * 2, mid, bias=True), nn.GELU(), nn.Dropout(dropout),
+            nn.Linear(mid, 1, bias=True))
+        self.alpha = nn.Parameter(torch.tensor(0.5))
+        self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x):
+        x_normed = self.norm(x)
+        global_ctx = x_normed.mean(dim=1)
+        channel_gates = self.channel_se(global_ctx).unsqueeze(1)
+        out = x * channel_gates
+        ch_scores = out.norm(dim=-1)
+        ch_scores = (ch_scores - ch_scores.mean(dim=-1, keepdim=True)) / (ch_scores.std(dim=-1, keepdim=True) + 1e-6)
+        B, N, C = x.shape
+        sp_input = torch.cat([x_normed, global_ctx.unsqueeze(1).expand(-1, N, -1)], dim=-1)
+        sp_scores = self.spatial_mlp(sp_input).squeeze(-1)
+        sp_scores = (sp_scores - sp_scores.mean(dim=-1, keepdim=True)) / (sp_scores.std(dim=-1, keepdim=True) + 1e-6)
+        alpha = torch.sigmoid(self.alpha)
+        importance = F.softmax(alpha * ch_scores + (1 - alpha) * sp_scores, dim=-1)
+        return out, importance
+
+
+class AdaptiveTokenPruning(nn.Module):
+    def __init__(self, dim, min_keep=0.3, max_keep=0.9):
+        super().__init__()
+        self.min_keep = min_keep
+        self.max_keep = max_keep
+        self.threshold_predictor = nn.Sequential(
+            nn.Linear(dim + 3, 32), nn.GELU(), nn.Linear(32, 1), nn.Sigmoid())
+
+    def forward(self, tokens, importance):
+        B, N, C = tokens.size()
+        global_feat = tokens.mean(dim=1)
+        imp_stats = torch.stack([importance.mean(dim=1), importance.std(dim=1),
+                                  importance.max(dim=1).values], dim=-1)
+        keep_ratio = self.threshold_predictor(torch.cat([global_feat, imp_stats], dim=-1)).squeeze(-1)
+        keep_ratio = self.min_keep + keep_ratio * (self.max_keep - self.min_keep)
+        k_val = torch.clamp((keep_ratio * N).long(), min=max(1, int(self.min_keep * N)),
+                             max=int(self.max_keep * N))[0].item()
+        _, top_k_idx = torch.topk(importance, k_val, dim=1)
+        batch_idx = torch.arange(B, device=tokens.device).unsqueeze(1).expand(-1, k_val)
+        return tokens[batch_idx, top_k_idx]
+
+
 class HierarchicalSE(nn.Module):
-    """Dual-stage Hierarchical Squeeze-Excitation with token importance scoring."""
+    """Old-style fixed-ratio SE for the 'fixed_pruning' ablation condition."""
     def __init__(self, dim, reduction=16, dropout=0.0):
         super().__init__()
         mid = max(1, dim // reduction)
         self.se = nn.Sequential(
             nn.Linear(dim, mid, bias=True), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(mid, dim, bias=True), nn.Sigmoid()
-        )
+            nn.Linear(mid, dim, bias=True), nn.Sigmoid())
 
     def forward(self, x):
         gates = self.se(x.mean(dim=1)).unsqueeze(1)
         out = x * gates
-        token_scores = out.norm(dim=-1)
-        token_scores = token_scores - token_scores.mean(dim=-1, keepdim=True)
-        importance = F.softmax(token_scores / (token_scores.std(dim=-1, keepdim=True) + 1e-6), dim=-1)
+        scores = out.norm(dim=-1)
+        scores = (scores - scores.mean(dim=-1, keepdim=True)) / (scores.std(dim=-1, keepdim=True) + 1e-6)
+        importance = F.softmax(scores, dim=-1)
         return out, importance
 
 
-def select_patches(tokens, importance, k):
+def select_patches_fixed(tokens, importance, k):
     B, N, C = tokens.size()
     k = min(k, N)
     _, top_k_idx = torch.topk(importance, k, dim=1)
@@ -87,20 +181,19 @@ def select_patches(tokens, importance, k):
 def build_model(condition: str, num_classes: int) -> nn.Module:
     """
     Returns a model for the given ablation condition.
-
-    condition:
-      'full'           — H-CoAtNet (all components)
-      'no_hse'         — ViT blocks only, HSE replaced with global avg pool
-      'no_transformer' — ConvNeXt stages only, ViT blocks skipped
-      'baseline'       — Plain ConvNeXt-Tiny fine-tuned (CoAtNet baseline)
     """
-    assert condition in ('full', 'no_hse', 'no_transformer', 'baseline'), \
-        f"Unknown condition: {condition}"
+    VALID = ('full', 'no_mscaf', 'no_transformer', 'no_dcshse', 'fixed_pruning', 'baseline')
+    assert condition in VALID, f"Unknown condition: {condition}. Choose from {VALID}"
 
     class AblationModel(nn.Module):
         def __init__(self, condition, num_classes):
             super().__init__()
             self.condition = condition
+
+            if condition == 'baseline':
+                self.model = create_model('convnext_tiny', pretrained=True, num_classes=num_classes)
+                return
+
             cnn = create_model('convnext_tiny', pretrained=True, num_classes=0)
             self.cnn_stem   = cnn.stem
             self.cnn_stage1 = cnn.stages[0]
@@ -108,66 +201,88 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             self.cnn_stage3 = cnn.stages[2]
             self.cnn_stage4 = cnn.stages[3]
 
-            # ViT blocks (used in 'full' and 'no_hse')
-            if condition in ('full', 'no_hse'):
+            has_mscaf = condition in ('full', 'no_dcshse', 'fixed_pruning')
+            has_vit = condition != 'no_transformer'
+            has_dcshse = condition in ('full', 'no_mscaf', 'no_transformer')
+            has_fixed_hse = condition == 'fixed_pruning'
+
+            if has_mscaf:
+                self.mscaf = MultiScaleCrossAttentionFusion(
+                    dim_low=96, dim_high=192, num_heads=4, dropout=DROPOUT)
+
+            if has_vit:
                 vit_dim = 192
                 self.pos_embed = nn.Parameter(torch.zeros(1, 28 * 28, vit_dim))
                 nn.init.trunc_normal_(self.pos_embed, std=0.02)
                 self.vit_blocks = nn.ModuleList([
                     Block(dim=vit_dim, num_heads=6, proj_drop=DROPOUT, attn_drop=DROPOUT * 0.5)
-                    for _ in range(2)
-                ])
+                    for _ in range(2)])
 
-            # HSE blocks (used in 'full' and 'no_transformer')
-            if condition in ('full', 'no_transformer'):
-                final_dim = 768
+            final_dim = 768
+            if has_dcshse:
+                self.dcshse_blocks = nn.ModuleList([
+                    DualPathChannelSpatialHSE(dim=final_dim, reduction=16, dropout=DROPOUT * 0.25)
+                    for _ in range(2)])
+                self.latp_blocks = nn.ModuleList([
+                    AdaptiveTokenPruning(dim=final_dim, min_keep=0.4, max_keep=0.85),
+                    AdaptiveTokenPruning(dim=final_dim, min_keep=0.25, max_keep=0.7)])
+
+            if has_fixed_hse:
                 self.selection_sizes = [int(49 * 0.75), int(49 * 0.50)]
                 self.hse_blocks = nn.ModuleList([
                     HierarchicalSE(dim=final_dim, reduction=16, dropout=DROPOUT * 0.25)
-                    for _ in self.selection_sizes
-                ])
+                    for _ in self.selection_sizes])
 
-            final_dim = 768
             self.classifier = nn.Sequential(
-                nn.LayerNorm(final_dim),
-                nn.Dropout(DROPOUT),
-                nn.Linear(final_dim, num_classes)
-            )
-
-            # For 'baseline': use timm's built-in head
-            if condition == 'baseline':
-                self.model = create_model('convnext_tiny', pretrained=True, num_classes=num_classes)
+                nn.LayerNorm(final_dim), nn.Dropout(DROPOUT), nn.Linear(final_dim, num_classes))
 
         def forward(self, x):
             if self.condition == 'baseline':
                 return self.model(x)
 
-            # Shared CNN stem + stage1 + stage2
+            has_mscaf = self.condition in ('full', 'no_dcshse', 'fixed_pruning')
+            has_vit = self.condition != 'no_transformer'
+            has_dcshse = self.condition in ('full', 'no_mscaf', 'no_transformer')
+            has_fixed_hse = self.condition == 'fixed_pruning'
+
             x = self.cnn_stem(x)
-            x = self.cnn_stage1(x)     # (B, 96, 56, 56)
-            x = self.cnn_stage2(x)     # (B, 192, 28, 28)
+            feat_s1 = self.cnn_stage1(x)
+            feat_s2 = self.cnn_stage2(feat_s1)
 
-            # Optional transformer stage
-            if self.condition in ('full', 'no_hse'):
-                B, C, H, W = x.shape
-                x = x.flatten(2).transpose(1, 2) + self.pos_embed
+            if has_mscaf and has_vit:
+                tokens = self.mscaf(feat_s1, feat_s2)
+                tokens = tokens + self.pos_embed
                 for blk in self.vit_blocks:
-                    x = blk(x)
-                x = x.transpose(1, 2).reshape(B, C, H, W)
+                    tokens = blk(tokens)
+                B = tokens.shape[0]
+                x = tokens.transpose(1, 2).reshape(B, 192, 28, 28)
+            elif has_vit:
+                B, C, H, W = feat_s2.shape
+                tokens = feat_s2.flatten(2).transpose(1, 2)
+                tokens = tokens + self.pos_embed
+                for blk in self.vit_blocks:
+                    tokens = blk(tokens)
+                x = tokens.transpose(1, 2).reshape(B, C, H, W)
+            else:
+                x = feat_s2
 
-            x = self.cnn_stage3(x)     # (B, 384, 14, 14)
-            x = self.cnn_stage4(x)     # (B, 768, 7, 7)
-            x = x.flatten(2).transpose(1, 2)  # (B, 49, 768)
+            x = self.cnn_stage3(x)
+            x = self.cnn_stage4(x)
+            x = x.flatten(2).transpose(1, 2)
 
-            # Optional HSE stage
-            if self.condition in ('full', 'no_transformer'):
+            if has_dcshse:
+                current = x
+                for dcshse, latp in zip(self.dcshse_blocks, self.latp_blocks):
+                    tokens_attn, importance = dcshse(current)
+                    current = latp(tokens_attn, importance)
+                x = current.mean(dim=1)
+            elif has_fixed_hse:
                 current = x
                 for hse, k in zip(self.hse_blocks, self.selection_sizes):
                     tokens_attn, importance = hse(current)
-                    current = select_patches(tokens_attn, importance, k)
+                    current = select_patches_fixed(tokens_attn, importance, k)
                 x = current.mean(dim=1)
             else:
-                # no_hse: simple global average pooling
                 x = x.mean(dim=1)
 
             return self.classifier(x)
@@ -204,8 +319,7 @@ def evaluate(model, loader, criterion):
         targets.extend(tgts.cpu().numpy())
     y_true = np.array(targets)
     y_pred = np.array(preds)
-    acc    = accuracy_score(y_true, y_pred)
-    return total_loss / len(loader), acc, y_true, y_pred
+    return total_loss / len(loader), accuracy_score(y_true, y_pred), y_true, y_pred
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -213,20 +327,21 @@ def main():
     parser = argparse.ArgumentParser(description="H-CoAtNet Ablation Study")
     parser.add_argument(
         '--condition',
-        choices=['full', 'no_hse', 'no_transformer', 'baseline'],
+        choices=['full', 'no_mscaf', 'no_transformer', 'no_dcshse', 'fixed_pruning', 'baseline'],
         default='full',
-        help="Ablation condition to train"
     )
     args = parser.parse_args()
     condition = args.condition
 
-    condition_labels = {
+    labels = {
         'full':           'H-CoAtNet (Full)',
-        'no_hse':         'H-CoAtNet w/o HSE',
+        'no_mscaf':       'H-CoAtNet w/o MSCAF',
         'no_transformer': 'H-CoAtNet w/o Transformer',
-        'baseline':       'CoAtNet Baseline (ConvNeXt-Tiny)',
+        'no_dcshse':      'H-CoAtNet w/o DCSHSE (GAP)',
+        'fixed_pruning':  'H-CoAtNet w/ Fixed Pruning',
+        'baseline':       'ConvNeXt-Tiny Baseline',
     }
-    print(f"=== Ablation Condition: {condition_labels[condition]} ===")
+    print(f"=== Ablation: {labels[condition]} ===")
     print(f"Device: {DEVICE} | Seed: {RANDOM_SEED}")
 
     from roboflow import Roboflow
@@ -236,18 +351,13 @@ def main():
 
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.TrivialAugmentWide(),
-        transforms.ToTensor(),
+        transforms.RandomHorizontalFlip(), transforms.RandomRotation(15),
+        transforms.TrivialAugmentWide(), transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        transforms.RandomErasing(p=0.2, scale=(0.02, 0.2)),
-    ])
+        transforms.RandomErasing(p=0.2, scale=(0.02, 0.2))])
     val_transform = transforms.Compose([
-        transforms.Resize(TARGET_SIZE),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+        transforms.Resize(TARGET_SIZE), transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
     train_ds = datasets.ImageFolder(os.path.join(DATASET_DIR, "train"), transform=train_transform)
     val_ds   = datasets.ImageFolder(os.path.join(DATASET_DIR, "valid"), transform=val_transform)
@@ -263,8 +373,7 @@ def main():
     num_classes = len(class_names)
     counts = np.bincount(train_ds.targets)
     cw = torch.tensor(
-        [len(train_ds) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float
-    ).to(DEVICE)
+        [len(train_ds) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float).to(DEVICE)
 
     model     = build_model(condition, num_classes)
     criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
@@ -291,11 +400,9 @@ def main():
     _, test_acc, y_true, y_pred = evaluate(model, test_loader, criterion)
     macro_f1 = f1_score(y_true, y_pred, average='macro',    zero_division=0)
     wtd_f1   = f1_score(y_true, y_pred, average='weighted', zero_division=0)
-
-    # Count trainable parameters
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    print(f"\n--- Ablation Results: {condition_labels[condition]} ---")
+    print(f"\n--- Ablation Results: {labels[condition]} ---")
     print(f"  Test Accuracy  : {test_acc*100:.2f}%")
     print(f"  Macro F1       : {macro_f1:.4f}")
     print(f"  Weighted F1    : {wtd_f1:.4f}")
@@ -303,24 +410,21 @@ def main():
     print(f"  Training time  : {total_time:.1f}s")
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
-    # Save predictions
     np.save(f'ablation_{condition}_y_true.npy', y_true)
     np.save(f'ablation_{condition}_y_pred.npy', y_pred)
 
-    # Confusion matrix
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=class_names, yticklabels=class_names, annot_kws={"size": 11})
-    plt.title(f'Ablation: {condition_labels[condition]}', fontsize=13, fontweight='bold')
+    plt.title(f'Ablation: {labels[condition]}', fontsize=13, fontweight='bold')
     plt.xlabel('Predicted', fontsize=12); plt.ylabel('True', fontsize=12)
     plt.tight_layout()
     plt.savefig(f'ablation_{condition}_cm.png', dpi=300)
     plt.close()
 
-    # Append row to ablation_results.csv
     row = {
-        'condition': condition_labels[condition],
+        'condition': labels[condition],
         'test_accuracy': round(test_acc * 100, 2),
         'macro_f1': round(macro_f1, 4),
         'weighted_f1': round(wtd_f1, 4),
