@@ -252,10 +252,10 @@ checkpoints = [
 predictions = [f for f in os.listdir(base) if f.endswith('_y_pred.npy')]
 print(f"Predictions found: {len(predictions)}")
 for p in sorted(predictions):
-    print(f"  ✅ {p}")
+    print(f"  OK  {p}")
 for ckpt in checkpoints:
     path = os.path.join(base, ckpt)
-    status = f"✅ {os.path.getsize(path)/1e6:.1f} MB" if os.path.exists(path) else "❌ missing"
+    status = f"OK ({os.path.getsize(path)/1e6:.1f} MB)" if os.path.exists(path) else "MISSING"
     print(f"{ckpt}: {status}")
 ```
 

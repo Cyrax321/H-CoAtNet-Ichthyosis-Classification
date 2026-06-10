@@ -2,7 +2,7 @@
 
 ---
 
-### ⚠️ REVIEW-ONLY NOTICE
+### REVIEW-ONLY NOTICE
 
 **This repository is provided solely for peer review and reproducibility purposes**  
 **associated with the submitted manuscript.**
