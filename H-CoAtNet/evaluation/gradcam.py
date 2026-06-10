@@ -5,7 +5,7 @@ Generates class-discriminative heatmaps using Gradient-weighted Class
 Activation Mapping (Grad-CAM) on the final ConvNeXt stage of H-CoAtNet.
 
 Usage:
-    python proposed_method/generate_gradcam.py --checkpoint best_h_coatnet.pth
+    python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
 
 Outputs:
     gradcam/<ClassName>_sample<N>_<correct|wrong>.png  -- overlay at 300 DPI
@@ -41,10 +41,9 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TARGET_SIZE = (224, 224)
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406])
 IMAGENET_STD  = np.array([0.229, 0.224, 0.225])
-SAMPLES_PER_CLASS = 3   # generate 3 examples per class
+SAMPLES_PER_CLASS = 3
 
 
-# ── Model (self-contained, matches train_h_coatnet.py) ──────────────────────
 class HierarchicalSE(nn.Module):
     def __init__(self, dim, reduction=16, dropout=0.0):
         super().__init__()
@@ -72,11 +71,70 @@ class HCoAtNet(nn.Module):
         self.cnn_stage2 = cnn.stages[1]
         self.cnn_stage3 = cnn.stages[2]
         self.cnn_stage4 = cnn.stages[3]
+
+        vit_dim = 192
+        num_vit_tokens = 28 * 28
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_vit_tokens, vit_dim))
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        self.vit_blocks = nn.ModuleList([
+            Block(dim=vit_dim, num_heads=6, proj_drop=dropout, attn_drop=dropout * 0.5)
+            for _ in range(vit_blocks)
+        ])
+
+        final_embed_dim = 768
+        num_final_tokens = 7 * 7
+        self.selection_sizes = [
+            int(num_final_tokens * 0.75),
+            int(num_final_tokens * 0.50),
+        ]
+        self.hierarchical_blocks = nn.ModuleList([
+            HierarchicalSE(dim=final_embed_dim, reduction=16, dropout=dropout * 0.25)
+            for _ in self.selection_sizes
+        ])
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(final_embed_dim),
+            nn.Dropout(dropout),
+            nn.Linear(final_embed_dim, num_classes)
+        )
+
+    def select_patches(self, tokens, importance, k):
+        B, N, C = tokens.size()
+        k = min(k, N)
+        _, top_k_idx = torch.topk(importance, k, dim=1)
+        batch_idx = torch.arange(B, device=tokens.device).unsqueeze(1).expand(-1, k)
+        return tokens[batch_idx, top_k_idx]
+
+    def forward(self, x):
+        x = self.cnn_stem(x)
+        x = self.cnn_stage1(x)
+        x = self.cnn_stage2(x)
+
+        B, C, H, W = x.shape
+        x = x.flatten(2).transpose(1, 2)
+        x = x + self.pos_embed
+        for blk in self.vit_blocks:
+            x = blk(x)
+        x = x.transpose(1, 2).reshape(B, C, H, W)
+
+        x = self.cnn_stage3(x)
+        x = self.cnn_stage4(x)
+
+        x = x.flatten(2).transpose(1, 2)
+        current_tokens = x
+        for attn_block, select_size in zip(self.hierarchical_blocks, self.selection_sizes):
+            tokens_attn, importance = attn_block(current_tokens)
+            current_tokens = self.select_patches(tokens_attn, importance, select_size)
+
+        x = current_tokens.mean(dim=1)
+        return self.classifier(x)
+
+
+class GradCAM:
     """
-    Registers forward and backward hooks on `target_layer` to capture
+    Registers forward and backward hooks on target_layer to capture
     activations and gradients for Grad-CAM computation.
     """
-    def __init__(self, model: nn.Module, target_layer: nn.Module):
+    def __init__(self, model, target_layer):
         self.model = model
         self.activations = None
         self.gradients   = None
@@ -89,21 +147,15 @@ class HCoAtNet(nn.Module):
     def _save_gradient(self, module, grad_input, grad_output):
         self.gradients = grad_output[0].detach()
 
-    def generate(self, input_tensor: torch.Tensor, class_idx: int) -> np.ndarray:
-        """
-        Returns a [0,1]-normalised Grad-CAM heatmap (H, W) for `class_idx`.
-        """
+    def generate(self, input_tensor, class_idx):
         self.model.zero_grad()
         logits = self.model(input_tensor)
         score  = logits[0, class_idx]
         score.backward()
 
-        # Global average pool of gradients → weights
-        weights = self.gradients.mean(dim=[2, 3], keepdim=True)  # (1, C, 1, 1)
-        cam = (weights * self.activations).sum(dim=1, keepdim=True)  # (1, 1, H, W)
+        weights = self.gradients.mean(dim=[2, 3], keepdim=True)
+        cam = (weights * self.activations).sum(dim=1, keepdim=True)
         cam = F.relu(cam)
-
-        # Upsample to input size
         cam = F.interpolate(cam, size=TARGET_SIZE, mode='bilinear', align_corners=False)
         cam = cam.squeeze().cpu().numpy()
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
@@ -114,24 +166,20 @@ class HCoAtNet(nn.Module):
         self._bwd_hook.remove()
 
 
-# ── Overlay helper ──────────────────────────────────────────────────────────
-def tensor_to_rgb(tensor: torch.Tensor) -> np.ndarray:
-    """Denormalise an ImageNet-normalised tensor to uint8 RGB (H, W, 3)."""
+def tensor_to_rgb(tensor):
     img = tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
     img = img * IMAGENET_STD + IMAGENET_MEAN
     img = np.clip(img, 0, 1)
     return (img * 255).astype(np.uint8)
 
 
-def apply_colormap_overlay(rgb: np.ndarray, cam: np.ndarray, alpha: float = 0.45) -> np.ndarray:
-    """Blend RGB image with JET heatmap overlay. Returns uint8 (H, W, 3)."""
+def apply_colormap_overlay(rgb, cam, alpha=0.45):
     heatmap = cv2.applyColorMap((cam * 255).astype(np.uint8), cv2.COLORMAP_JET)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
     overlay = cv2.addWeighted(rgb, 1 - alpha, heatmap, alpha, 0)
     return overlay
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Grad-CAM for H-CoAtNet")
     parser.add_argument('--checkpoint', default='best_h_coatnet.pth')
@@ -141,7 +189,6 @@ def main():
     parser.add_argument('--samples', type=int, default=SAMPLES_PER_CLASS)
     args = parser.parse_args()
 
-    # ── Load dataset ─────────────────────────────────────────────────────────
     if args.dataset_dir:
         DATASET_DIR = args.dataset_dir
     else:
@@ -160,24 +207,19 @@ def main():
     num_classes = len(class_names)
     print(f"Classes: {class_names}")
 
-    # ── Load model ───────────────────────────────────────────────────────────
     model = HCoAtNet(num_classes=num_classes).to(DEVICE)
     model.load_state_dict(torch.load(args.checkpoint, map_location=DEVICE, weights_only=True))
     model.eval()
     print(f"Loaded checkpoint: {args.checkpoint}")
 
-    # ── Setup Grad-CAM on cnn_stage4 (final ConvNeXt stage) ──────────────────
     gradcam = GradCAM(model, model.cnn_stage4)
-
     os.makedirs("gradcam", exist_ok=True)
 
-    # ── Collect samples per class ─────────────────────────────────────────────
-    # Group indices by class
     class_indices = {i: [] for i in range(num_classes)}
     for idx, (_, label) in enumerate(test_ds.samples):
         class_indices[label].append(idx)
 
-    all_rows = []   # for publication grid: one row per class, `samples` columns
+    all_rows = []
 
     for class_idx, cls_name in enumerate(class_names):
         indices = class_indices[class_idx]
@@ -189,11 +231,9 @@ def main():
             img_tensor, true_label = test_ds[sample_idx]
             input_tensor = img_tensor.unsqueeze(0).to(DEVICE).requires_grad_(True)
 
-            # Forward + Grad-CAM for the true class
             with torch.enable_grad():
                 cam = gradcam.generate(input_tensor, class_idx=class_idx)
 
-            # Get prediction
             with torch.no_grad():
                 logits = model(input_tensor)
             pred_label = logits.argmax(1).item()
@@ -204,15 +244,14 @@ def main():
             rgb  = tensor_to_rgb(img_tensor)
             overlay = apply_colormap_overlay(rgb, cam, alpha=0.4)
 
-            # Save individual image
             fig, axes = plt.subplots(1, 2, figsize=(8, 4))
             axes[0].imshow(rgb);     axes[0].set_title("Original",  fontsize=11)
             axes[1].imshow(overlay); axes[1].set_title(
-                f"Grad-CAM\nPred: {pred_name} ({'✓' if correct else '✗'})", fontsize=11
+                f"Grad-CAM\nPred: {pred_name} ({'correct' if correct else 'wrong'})", fontsize=11
             )
             for ax in axes:
                 ax.axis('off')
-            fig.suptitle(f"{cls_name} — Sample {sample_n + 1} ({outcome})",
+            fig.suptitle(f"{cls_name} - Sample {sample_n + 1} ({outcome})",
                          fontsize=12, fontweight='bold')
             plt.tight_layout()
             fname = f"gradcam/{cls_name}_sample{sample_n+1}_{outcome}.png"
@@ -221,14 +260,12 @@ def main():
             print(f"  Saved: {fname}")
             row_images.append(overlay)
 
-        # Pad row if fewer samples than requested
         while len(row_images) < args.samples:
             row_images.append(np.zeros((*TARGET_SIZE, 3), dtype=np.uint8))
         all_rows.append((cls_name, row_images))
 
     gradcam.remove_hooks()
 
-    # ── Publication-quality grid (classes × samples) ─────────────────────────
     n_rows = num_classes
     n_cols = args.samples
     fig = plt.figure(figsize=(n_cols * 3.5, n_rows * 3.5))
@@ -246,7 +283,7 @@ def main():
             if r == 0:
                 ax.set_title(f"Sample {c+1}", fontsize=10)
 
-    fig.suptitle("H-CoAtNet — Grad-CAM Activation Maps (cnn_stage4 target layer)",
+    fig.suptitle("H-CoAtNet: Grad-CAM Activation Maps (cnn_stage4 target layer)",
                  fontsize=13, fontweight='bold', y=1.01)
     plt.savefig("gradcam/gradcam_grid.png", dpi=300, bbox_inches='tight')
     plt.close()

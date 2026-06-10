@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -303,7 +305,7 @@ def plot_curves(history):
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(f'{metric}_curves.png', dpi=300)
-        plt.show()
+        plt.close()
 
 
 # Main Execution Logic
@@ -412,7 +414,7 @@ def main():
         plt.title('Confusion Matrix - Swin Transformer')
         plt.tight_layout()
         plt.savefig('confusion_matrix_swin.png', dpi=300)
-        plt.show()
+        plt.close()
 
         plot_curves(history)
     else:

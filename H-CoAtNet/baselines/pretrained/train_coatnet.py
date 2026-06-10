@@ -5,6 +5,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -103,7 +105,7 @@ def plot_curves(history):
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(f'coatnet_baseline_{metric}_curves.png', dpi=300)
-        plt.show()
+        plt.close()
 
 
 # Main Execution Logic
@@ -217,7 +219,7 @@ def main():
         plt.ylabel('True Label')
         plt.title('Confusion Matrix - CoAtNet Baseline')
         plt.savefig('confusion_matrix_coatnet.png', dpi=300)
-        plt.show()
+        plt.close()
 
         plot_curves(history)
     else:

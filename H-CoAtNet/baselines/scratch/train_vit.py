@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -226,7 +228,7 @@ def plot_curves(history, model_name="ViT"):
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(f'{model_name.lower()}_{metric}_curves.png', dpi=300)
-        plt.show()
+        plt.close()
 
 
 # Main Execution Logic
@@ -343,7 +345,7 @@ def main():
         plt.title('Confusion Matrix - ViT From Scratch')
         plt.tight_layout()
         plt.savefig('vit_from_scratch_confusion_matrix.png', dpi=300)
-        plt.show()
+        plt.close()
 
         plot_curves(history, model_name="ViT_From_Scratch")
     else:

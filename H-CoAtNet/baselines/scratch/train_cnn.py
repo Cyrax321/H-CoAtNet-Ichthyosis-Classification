@@ -5,6 +5,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
@@ -125,7 +127,7 @@ def plot_curves(history):
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(f'fair_cnn_{metric}_curves.png', dpi=300)
-        plt.show()
+        plt.close()
 
 
 # Main Execution Logic
@@ -242,7 +244,7 @@ def main():
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
         plt.title('Confusion Matrix - Fair CNN Model')
         plt.savefig('confusion_matrix_fair_cnn.png', dpi=300)
-        plt.show()
+        plt.close()
 
         plot_curves(history)
     else:
