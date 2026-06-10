@@ -54,7 +54,7 @@ COLORS = [
 ]
 
 MODEL_REGISTRY = [
-    ('WaveCoAtNet (Proposed)',       'h_coatnet'),
+    ('WaveCoAtNet (Proposed)',       'wavecoatnet'),
     ('ConvNeXt-Tiny (CoAtNet)',    'coatnet'),
     ('EfficientNet-B0 (PT)',       'efficientnet_pretrained'),
     ('EfficientNet-B0 (Scratch)',  'efficientnet_scratch'),
@@ -211,10 +211,10 @@ def plot_model_comparison(results, class_names):
 # ── 4. t-SNE Visualization ──────────────────────────────────────────────────
 def plot_tsne(class_names):
     """t-SNE visualization using WaveCoAtNet predictions."""
-    yt = np.load('h_coatnet_y_true.npy') if os.path.exists('h_coatnet_y_true.npy') else None
-    yp = np.load('h_coatnet_y_pred.npy') if os.path.exists('h_coatnet_y_pred.npy') else None
+    yt = np.load('wavecoatnet_y_true.npy') if os.path.exists('wavecoatnet_y_true.npy') else None
+    yp = np.load('wavecoatnet_y_pred.npy') if os.path.exists('wavecoatnet_y_pred.npy') else None
     if yt is None:
-        print("  SKIP t-SNE: h_coatnet_y_true.npy not found")
+        print("  SKIP t-SNE: wavecoatnet_y_true.npy not found")
         return
 
     try:
@@ -303,7 +303,7 @@ def plot_dataset_samples(class_names):
 # ── 6. Confusion Matrix Comparison ──────────────────────────────────────────
 def plot_confusion_matrix_comparison(results, class_names):
     """Side-by-side confusion matrices for proposed vs best baseline."""
-    proposed = [r for r in results if r[1] == 'h_coatnet']
+    proposed = [r for r in results if r[1] == 'wavecoatnet']
     if not proposed:
         print("  SKIP CM comparison: WaveCoAtNet predictions not found")
         return
@@ -314,7 +314,7 @@ def plot_confusion_matrix_comparison(results, class_names):
     best_baseline = None
     best_acc = 0
     for label, prefix, yt, yp in results:
-        if prefix != 'h_coatnet':
+        if prefix != 'wavecoatnet':
             acc = accuracy_score(yt, yp)
             if acc > best_acc:
                 best_acc = acc
@@ -548,7 +548,7 @@ def plot_model_efficiency_bubble(results, class_names):
     # Known approximate parameter counts for each model (in millions).
     # These are standard published numbers; exact counts are logged at training time.
     PARAM_COUNTS = {
-        'h_coatnet':                28.9,
+        'wavecoatnet':                28.9,
         'coatnet':                  28.6,
         'efficientnet_pretrained':   5.3,
         'efficientnet_scratch':      5.3,
@@ -571,7 +571,7 @@ def plot_model_efficiency_bubble(results, class_names):
     }
 
     def get_category(prefix):
-        if prefix == 'h_coatnet':
+        if prefix == 'wavecoatnet':
             return 'proposed'
         elif prefix in ('biomedclip', 'dinov2', 'gft'):
             return 'foundation'
@@ -721,14 +721,14 @@ def plot_ablation_comparison():
 def plot_failure_analysis(class_names):
     """
     Shows misclassified examples from WaveCoAtNet: original image + prediction info.
-    Requires the dataset to be available and h_coatnet predictions.
+    Requires the dataset to be available and wavecoatnet predictions.
     """
-    if not os.path.exists('h_coatnet_y_true.npy') or not os.path.exists('h_coatnet_y_pred.npy'):
+    if not os.path.exists('wavecoatnet_y_true.npy') or not os.path.exists('wavecoatnet_y_pred.npy'):
         print("  SKIP failure analysis: WaveCoAtNet predictions not found")
         return
 
-    yt = np.load('h_coatnet_y_true.npy')
-    yp = np.load('h_coatnet_y_pred.npy')
+    yt = np.load('wavecoatnet_y_true.npy')
+    yp = np.load('wavecoatnet_y_pred.npy')
 
     # Find misclassified indices
     wrong_mask = yt != yp

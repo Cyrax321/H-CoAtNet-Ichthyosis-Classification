@@ -5,7 +5,7 @@ Generates class-discriminative heatmaps using Gradient-weighted Class
 Activation Mapping (Grad-CAM) on the final ConvNeXt stage of WaveCoAtNet.
 
 Usage:
-    python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
+    python evaluation/gradcam.py --checkpoint best_wavecoatnet.pth
 
 Outputs:
     gradcam/<ClassName>_sample<N>_<correct|wrong>.png  -- overlay at 300 DPI
@@ -44,7 +44,7 @@ IMAGENET_STD  = np.array([0.229, 0.224, 0.225])
 SAMPLES_PER_CLASS = 3
 
 
-# ── Model modules (self-contained, matches train_h_coatnet.py v2) ────────────
+# ── Model modules (self-contained, matches train_wavecoatnet.py v2) ────────────
 
 def haar_dwt_2d(x):
     x_l = (x[:, :, :, 0::2] + x[:, :, :, 1::2]) * 0.5
@@ -149,7 +149,7 @@ class SupervisedContrastiveTokenLoss(nn.Module):
 
 
 class WaveCoAtNet(nn.Module):
-    """WaveCoAtNet — must match train_h_coatnet.py exactly for checkpoint loading."""
+    """WaveCoAtNet — must match train_wavecoatnet.py exactly for checkpoint loading."""
     def __init__(self, num_classes=5, vit_blocks=2, dropout=0.2):
         super().__init__()
         cnn = create_model('convnext_tiny', pretrained=False, num_classes=0)
@@ -241,7 +241,7 @@ def apply_overlay(img, cam, alpha=0.4):
 
 def main():
     parser = argparse.ArgumentParser(description="WaveCoAtNet Grad-CAM")
-    parser.add_argument('--checkpoint', default='best_h_coatnet.pth')
+    parser.add_argument('--checkpoint', default='best_wavecoatnet.pth')
     parser.add_argument('--samples', type=int, default=SAMPLES_PER_CLASS)
     args = parser.parse_args()
 

@@ -57,7 +57,7 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SCTR_WEIGHT  = 0.1
 PROTO_MOM    = 0.999
 
-# ── Model definitions (self-contained, matches train_h_coatnet.py v2) ────────
+# ── Model definitions (self-contained, matches train_wavecoatnet.py v2) ────────
 
 def haar_dwt_2d(x):
     """2D Haar Discrete Wavelet Transform."""

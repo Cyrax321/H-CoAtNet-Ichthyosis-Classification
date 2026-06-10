@@ -14,13 +14,13 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 import os
-os.makedirs('/content/drive/MyDrive/HCoAtNet_experiments', exist_ok=True)
-%cd /content/drive/MyDrive/HCoAtNet_experiments
+os.makedirs('/content/drive/MyDrive/WaveCoAtNet_experiments', exist_ok=True)
+%cd /content/drive/MyDrive/WaveCoAtNet_experiments
 ```
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments
+cd /content/drive/MyDrive/WaveCoAtNet_experiments
 git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis-Classification.git
 cd H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 pip install -q -r requirements.txt
@@ -44,15 +44,15 @@ else:
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
-python proposed/train_h_coatnet.py 2>&1 | tee logs_h_coatnet.txt
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+python proposed/train_wavecoatnet.py 2>&1 | tee logs_wavecoatnet.txt
 ```
 
 **Output files:**
-- `best_h_coatnet.pth` — best checkpoint
-- `h_coatnet_y_true.npy`, `h_coatnet_y_pred.npy` — test predictions
-- `confusion_matrix_h_coatnet.png`
-- `h_coatnet_loss_curves.png`, `h_coatnet_acc_curves.png`
+- `best_wavecoatnet.pth` — best checkpoint
+- `wavecoatnet_y_true.npy`, `wavecoatnet_y_pred.npy` — test predictions
+- `confusion_matrix_wavecoatnet.png`
+- `wavecoatnet_loss_curves.png`, `wavecoatnet_acc_curves.png`
 
 ---
 
@@ -62,7 +62,7 @@ python proposed/train_h_coatnet.py 2>&1 | tee logs_h_coatnet.txt
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 
 echo "=== EfficientNet-B0 (Pretrained) ==="
 python baselines/pretrained/train_efficientnet_b0.py 2>&1 | tee logs_efficientnet_pretrained.txt
@@ -84,7 +84,7 @@ python baselines/pretrained/train_gft.py 2>&1 | tee logs_gft.txt
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 
 echo "=== BiomedCLIP ==="
 python baselines/pretrained/train_biomedclip.py 2>&1 | tee logs_biomedclip.txt
@@ -97,7 +97,7 @@ python baselines/pretrained/train_dinov2.py 2>&1 | tee logs_dinov2.txt
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 
 echo "=== CNN (Scratch) ==="
 python baselines/scratch/train_cnn.py 2>&1 | tee logs_cnn_scratch.txt
@@ -120,7 +120,7 @@ Run **after** WaveCoAtNet training is complete.
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 
 for cond in full no_wgfdca no_transformer no_padts no_sctr fixed_pruning no_prototypes baseline; do
     echo "=== Ablation: $cond ==="
@@ -149,7 +149,7 @@ Run **after** all models are trained (needs all `*_y_pred.npy` files).
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 python evaluation/crossval.py 2>&1 | tee logs_crossval.txt
 ```
 
@@ -167,8 +167,8 @@ Run **after** WaveCoAtNet training is complete.
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
-python evaluation/gradcam.py --checkpoint best_h_coatnet.pth 2>&1 | tee logs_gradcam.txt
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+python evaluation/gradcam.py --checkpoint best_wavecoatnet.pth 2>&1 | tee logs_gradcam.txt
 ```
 
 **Output:** `gradcam/gradcam_grid.png` — publication-quality figure.
@@ -181,7 +181,7 @@ Run **after** all models are trained (needs all `*_y_pred.npy` files).
 
 ```bash
 %%bash
-cd /content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+cd /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 python evaluation/generate_visualizations.py 2>&1 | tee logs_visualizations.txt
 ```
 
@@ -211,7 +211,7 @@ python evaluation/generate_visualizations.py 2>&1 | tee logs_visualizations.txt
 
 | Script | Time |
 |---|---|
-| `train_h_coatnet.py` (proposed) | ~40–55 min |
+| `train_wavecoatnet.py` (proposed) | ~40–55 min |
 | Pretrained baselines (5 models) | ~2–3 hours total |
 | Foundation models (2 models) | ~1–1.5 hours total |
 | From-scratch baselines (4 models) | ~2–3 hours total |
@@ -240,9 +240,9 @@ setInterval(ClickConnect, 60000)
 
 ```python
 import os
-base = '/content/drive/MyDrive/HCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet'
+base = '/content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet'
 checkpoints = [
-    'best_h_coatnet.pth',
+    'best_wavecoatnet.pth',
     'best_efficientnet_pretrained.pth',
     'best_swin_pretrained.pth',
     'best_vit_pretrained.pth',

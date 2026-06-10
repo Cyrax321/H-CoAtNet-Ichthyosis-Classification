@@ -51,7 +51,7 @@ All commands **must be executed from this directory**.
 H-CoAtNet/
 ├── requirements.txt
 ├── proposed/
-│   └── train_h_coatnet.py              # WaveCoAtNet (proposed)
+│   └── train_wavecoatnet.py              # WaveCoAtNet (proposed)
 ├── baselines/
 │   ├── pretrained/                     # Fine-tuned from ImageNet weights
 │   │   ├── train_efficientnet_b0.py    # EfficientNet-B0
@@ -149,7 +149,7 @@ The dataset is hosted on **Roboflow** for controlled access and versioning.
 
 ### Adding the API Key
 
-Open `proposed/train_h_coatnet.py` and set:
+Open `proposed/train_wavecoatnet.py` and set:
 
 ```python
 API_KEY = "PASTE_YOUR_KEY_HERE"
@@ -164,7 +164,7 @@ Use the **same dataset version** for all models.
 ### Proposed Method (WaveCoAtNet)
 
 ```bash
-python proposed/train_h_coatnet.py
+python proposed/train_wavecoatnet.py
 ```
 
 ### Pretrained Baselines
@@ -235,7 +235,7 @@ Outputs:
 ## 8. **Grad-CAM Interpretability**
 
 ```bash
-python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
+python evaluation/gradcam.py --checkpoint best_wavecoatnet.pth
 ```
 
 Outputs:

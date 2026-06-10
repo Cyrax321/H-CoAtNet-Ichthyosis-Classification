@@ -654,7 +654,7 @@ def plot_curves(history: dict, out_dir: str = "."):
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
-        plt.savefig(os.path.join(out_dir, f'h_coatnet_{metric}_curves.png'), dpi=300)
+        plt.savefig(os.path.join(out_dir, f'wavecoatnet_{metric}_curves.png'), dpi=300)
         plt.close()
 
 
@@ -752,20 +752,20 @@ def main():
 
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), 'best_h_coatnet.pth')
+            torch.save(model.state_dict(), 'best_wavecoatnet.pth')
             print(f"  New best model saved (Val Acc = {best_val_acc:.4f})")
 
     avg_epoch_time = np.mean(epoch_times)
     print(f"\nAverage epoch time: {avg_epoch_time:.1f}s")
 
     print("\n--- Final Evaluation (Best Checkpoint) ---")
-    model.load_state_dict(torch.load('best_h_coatnet.pth', weights_only=True))
+    model.load_state_dict(torch.load('best_wavecoatnet.pth', weights_only=True))
     _, final_test_acc, y_true, y_pred = evaluate(model, test_loader, criterion, "Final Test")
     print(f"Final Test Accuracy: {final_test_acc * 100:.2f}%")
 
-    np.save('h_coatnet_y_true.npy', np.array(y_true))
-    np.save('h_coatnet_y_pred.npy', np.array(y_pred))
-    print("Predictions saved to h_coatnet_y_true.npy and h_coatnet_y_pred.npy")
+    np.save('wavecoatnet_y_true.npy', np.array(y_true))
+    np.save('wavecoatnet_y_pred.npy', np.array(y_pred))
+    print("Predictions saved to wavecoatnet_y_true.npy and wavecoatnet_y_pred.npy")
 
     print("\nClassification Report:")
     print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
@@ -781,7 +781,7 @@ def main():
     plt.ylabel('True Label', fontsize=13)
     plt.title('Confusion Matrix -- WaveCoAtNet', fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig('confusion_matrix_h_coatnet.png', dpi=300)
+    plt.savefig('confusion_matrix_wavecoatnet.png', dpi=300)
     plt.close()
 
     plot_curves(history)
