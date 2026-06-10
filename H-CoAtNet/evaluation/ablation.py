@@ -441,11 +441,17 @@ def evaluate(model, loader, criterion):
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
+def run_single_condition(condition, labels):
+    """Run ablation for a single condition."""
+    print(f"\n{'='*60}")
+    print(f"  Ablation: {labels[condition]}  [{condition}]")
+    print(f"{'='*60}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="WaveCoAtNet Ablation Study")
-    parser.add_argument('--condition', choices=list(VALID_CONDITIONS), default='full')
+    parser.add_argument('--condition', choices=list(VALID_CONDITIONS) + ['all'], default='all')
     args = parser.parse_args()
-    condition = args.condition
 
     labels = {
         'full':           'WaveCoAtNet (Full)',
@@ -457,9 +463,20 @@ def main():
         'no_prototypes':  'w/o Prototypes (SE only)',
         'baseline':       'ConvNeXt-Tiny Baseline',
     }
-    print(f"=== Ablation: {labels[condition]} ===")
-    print(f"Device: {DEVICE} | Seed: {RANDOM_SEED}")
 
+    if args.condition == 'all':
+        conditions = list(VALID_CONDITIONS)
+        print(f"Running ALL {len(conditions)} ablation conditions sequentially...")
+    else:
+        conditions = [args.condition]
+
+    for idx, condition in enumerate(conditions, 1):
+        print(f"\n{'='*60}")
+        print(f"  [{idx}/{len(conditions)}] Ablation: {labels[condition]}")
+        print(f"{'='*60}")
+        print(f"Device: {DEVICE} | Seed: {RANDOM_SEED}")
+
+    # Load dataset once (shared across all conditions)
     from roboflow import Roboflow
     rf = Roboflow(api_key="gXuxxWEMFJ8nK73o7pN7")
     dataset = rf.workspace("hi-l9ueo").project("ich-s-7lnsj").version(1).download("folder")
@@ -490,69 +507,90 @@ def main():
     counts = np.bincount(train_ds.targets)
     cw = torch.tensor([len(train_ds)/(c*num_classes+1e-6) for c in counts], dtype=torch.float).to(DEVICE)
 
-    model = build_model(condition, num_classes)
-    criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+    # Run each condition
+    for idx, condition in enumerate(conditions, 1):
+        print(f"\n{'='*60}")
+        print(f"  [{idx}/{len(conditions)}] Training: {labels[condition]}")
+        print(f"{'='*60}")
 
-    use_sctr = hasattr(model, 'use_sctr') and model.use_sctr
-    best_val_acc = 0.0
-    ckpt = f"ablation_{condition}_best.pth"
-    t_start = time.time()
+        # Reset seeds for reproducibility
+        random.seed(RANDOM_SEED)
+        np.random.seed(RANDOM_SEED)
+        torch.manual_seed(RANDOM_SEED)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(RANDOM_SEED)
 
-    for epoch in range(EPOCHS):
-        tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, use_sctr=use_sctr)
-        vl_loss, vl_acc, _, _ = evaluate(model, val_loader, criterion)
-        scheduler.step()
-        if epoch % 5 == 0 or epoch == EPOCHS - 1:
-            print(f"  Epoch {epoch+1:2d}/{EPOCHS} | Train {tr_acc:.4f} | Val {vl_acc:.4f}")
-        if vl_acc > best_val_acc:
-            best_val_acc = vl_acc
-            torch.save(model.state_dict(), ckpt)
+        model = build_model(condition, num_classes)
+        criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
-    total_time = time.time() - t_start
-    model.load_state_dict(torch.load(ckpt, weights_only=True))
-    _, test_acc, y_true, y_pred = evaluate(model, test_loader, criterion)
-    macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
-    wtd_f1   = f1_score(y_true, y_pred, average='weighted', zero_division=0)
-    n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        use_sctr = hasattr(model, 'use_sctr') and model.use_sctr
+        best_val_acc = 0.0
+        ckpt = f"ablation_{condition}_best.pth"
+        t_start = time.time()
 
-    print(f"\n--- Ablation Results: {labels[condition]} ---")
-    print(f"  Test Accuracy  : {test_acc*100:.2f}%")
-    print(f"  Macro F1       : {macro_f1:.4f}")
-    print(f"  Weighted F1    : {wtd_f1:.4f}")
-    print(f"  Parameters     : {n_params:,}")
-    print(f"  Training time  : {total_time:.1f}s")
-    print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
+        for epoch in range(EPOCHS):
+            tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, use_sctr=use_sctr)
+            vl_loss, vl_acc, _, _ = evaluate(model, val_loader, criterion)
+            scheduler.step()
+            if epoch % 5 == 0 or epoch == EPOCHS - 1:
+                print(f"  Epoch {epoch+1:2d}/{EPOCHS} | Train {tr_acc:.4f} | Val {vl_acc:.4f}")
+            if vl_acc > best_val_acc:
+                best_val_acc = vl_acc
+                torch.save(model.state_dict(), ckpt)
 
-    np.save(f'ablation_{condition}_y_true.npy', y_true)
-    np.save(f'ablation_{condition}_y_pred.npy', y_pred)
+        total_time = time.time() - t_start
+        model.load_state_dict(torch.load(ckpt, weights_only=True))
+        _, test_acc, y_true, y_pred = evaluate(model, test_loader, criterion)
+        macro_f1 = f1_score(y_true, y_pred, average='macro', zero_division=0)
+        wtd_f1   = f1_score(y_true, y_pred, average='weighted', zero_division=0)
+        n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    cm = confusion_matrix(y_true, y_pred)
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                xticklabels=class_names, yticklabels=class_names, annot_kws={"size": 11})
-    plt.title(f'Ablation: {labels[condition]}', fontsize=13, fontweight='bold')
-    plt.xlabel('Predicted', fontsize=12); plt.ylabel('True', fontsize=12)
-    plt.tight_layout()
-    plt.savefig(f'ablation_{condition}_cm.png', dpi=300)
-    plt.close()
+        print(f"\n--- Ablation Results: {labels[condition]} ---")
+        print(f"  Test Accuracy  : {test_acc*100:.2f}%")
+        print(f"  Macro F1       : {macro_f1:.4f}")
+        print(f"  Weighted F1    : {wtd_f1:.4f}")
+        print(f"  Parameters     : {n_params:,}")
+        print(f"  Training time  : {total_time:.1f}s")
+        print(classification_report(y_true, y_pred, target_names=class_names, digits=4))
 
-    row = {
-        'condition': labels[condition],
-        'test_accuracy': round(test_acc*100, 2),
-        'macro_f1': round(macro_f1, 4),
-        'weighted_f1': round(wtd_f1, 4),
-        'n_params': n_params,
-        'train_time_s': round(total_time, 1),
-    }
-    file_exists = os.path.exists(RESULTS_CSV)
-    with open(RESULTS_CSV, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=list(row.keys()))
-        if not file_exists:
-            writer.writeheader()
-        writer.writerow(row)
-    print(f"\nResults appended to {RESULTS_CSV}")
+        np.save(f'ablation_{condition}_y_true.npy', y_true)
+        np.save(f'ablation_{condition}_y_pred.npy', y_pred)
+
+        cm = confusion_matrix(y_true, y_pred)
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                    xticklabels=class_names, yticklabels=class_names, annot_kws={"size": 11})
+        plt.title(f'Ablation: {labels[condition]}', fontsize=13, fontweight='bold')
+        plt.xlabel('Predicted', fontsize=12); plt.ylabel('True', fontsize=12)
+        plt.tight_layout()
+        plt.savefig(f'ablation_{condition}_cm.png', dpi=300)
+        plt.close()
+
+        row = {
+            'condition': labels[condition],
+            'test_accuracy': round(test_acc*100, 2),
+            'macro_f1': round(macro_f1, 4),
+            'weighted_f1': round(wtd_f1, 4),
+            'n_params': n_params,
+            'train_time_s': round(total_time, 1),
+        }
+        file_exists = os.path.exists(RESULTS_CSV)
+        with open(RESULTS_CSV, 'a', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=list(row.keys()))
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(row)
+        print(f"Results appended to {RESULTS_CSV}")
+
+        # Free GPU memory between conditions
+        del model, optimizer, scheduler, criterion
+        torch.cuda.empty_cache()
+
+    print(f"\n{'='*60}")
+    print(f"  ALL {len(conditions)} ABLATION CONDITIONS COMPLETE")
+    print(f"{'='*60}")
 
 
 if __name__ == '__main__':
