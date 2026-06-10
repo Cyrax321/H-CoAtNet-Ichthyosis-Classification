@@ -18,11 +18,12 @@ import os
 import csv
 import time
 import random
+import shutil
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset, ConcatDataset
+from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 
 import numpy as np
@@ -53,11 +54,11 @@ DROPOUT      = 0.2
 N_FOLDS      = 5
 DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 SCTR_WEIGHT  = 0.1
-PROTO_MOM    = 0.999
+PROTO_MOM    = 0.99   # Lower than 0.999 for cold-start per fold
 
-# ── Model definitions (self-contained, matches train_wavecoatnet.py v2) ────────
+
+# ── Model definitions (matches train_wavecoatnet.py) ──────────────────────────
 
 def haar_dwt_2d(x):
     """2D Haar Discrete Wavelet Transform."""
@@ -148,13 +149,14 @@ class PrototypeAnchoredTokenSelection(nn.Module):
         imp = F.softmax(w[0]*_zn(aff) + w[1]*_zn(ent) + w[2]*_zn(ch), -1)
         g = self.keep_predictor(torch.cat([x.mean(1), torch.stack([imp.mean(1), imp.std(1), imp.max(1).values], -1)], -1)).squeeze(-1)
         g = self.min_keep + g * (self.max_keep - self.min_keep)
-        k = torch.clamp((g*N).long(), min=max(1, int(self.min_keep*N)), max=int(self.max_keep*N))[0].item()
+        # Use per-batch mean keep ratio (not just index 0)
+        k = torch.clamp((g.mean()*N).long(), min=max(1, int(self.min_keep*N)), max=int(self.max_keep*N)).item()
         _, idx = torch.topk(imp, k, dim=1)
         bi = torch.arange(B, device=x.device).unsqueeze(1).expand(-1, k)
         return x[bi, idx] * (1 + imp[bi, idx].unsqueeze(-1)), imp
 
     @torch.no_grad()
-    def update_prototypes(self, embeddings, labels, momentum=0.999):
+    def update_prototypes(self, embeddings, labels, momentum=0.99):
         for c in range(self.num_classes):
             m = labels == c
             if m.sum() > 0:
@@ -234,8 +236,8 @@ def train_one_epoch(model, loader, criterion, optimizer):
         sctr = model.sctr(emb, tgts)
         loss = ce + SCTR_WEIGHT * sctr
         loss.backward()
-        optimizer.step()
         model.pa_dts.update_prototypes(emb.detach(), tgts, PROTO_MOM)
+        optimizer.step()
         total_loss += loss.item()
         preds.extend(logits.argmax(1).cpu().numpy())
         targets.extend(tgts.cpu().numpy())
@@ -270,9 +272,50 @@ def mcnemar_test(y_true, pred_a, pred_b):
 def bootstrap_ci(y_true, y_pred, metric_fn, n_boot=2000, alpha=0.05):
     n = len(y_true)
     rng = np.random.default_rng(RANDOM_SEED)
-    scores = [metric_fn(y_true[rng.integers(0, n, size=n)],
-                         y_pred[rng.integers(0, n, size=n)]) for _ in range(n_boot)]
+    scores = []
+    for _ in range(n_boot):
+        idx = rng.integers(0, n, size=n)
+        scores.append(metric_fn(y_true[idx], y_pred[idx]))
     return np.percentile(scores, 100 * alpha / 2), np.percentile(scores, 100 * (1 - alpha / 2))
+
+
+# ── Merge dataset splits into one folder ─────────────────────────────────────
+def merge_splits_to_single_folder(dataset_dir):
+    """
+    Merge train/valid/test into a single 'all/' folder for proper CV.
+    Returns path to the merged folder.
+    """
+    all_dir = os.path.join(dataset_dir, "all")
+    if os.path.exists(all_dir):
+        # Already merged from a previous run
+        count = sum(len(files) for _, _, files in os.walk(all_dir))
+        if count > 0:
+            print(f"  Using existing merged folder: {all_dir} ({count} files)")
+            return all_dir
+
+    os.makedirs(all_dir, exist_ok=True)
+    total_copied = 0
+
+    for split in ["train", "valid", "test"]:
+        split_dir = os.path.join(dataset_dir, split)
+        if not os.path.exists(split_dir):
+            continue
+        for class_name in os.listdir(split_dir):
+            src_class = os.path.join(split_dir, class_name)
+            if not os.path.isdir(src_class):
+                continue
+            dst_class = os.path.join(all_dir, class_name)
+            os.makedirs(dst_class, exist_ok=True)
+            for fname in os.listdir(src_class):
+                src_file = os.path.join(src_class, fname)
+                # Prefix with split name to avoid filename collisions
+                dst_file = os.path.join(dst_class, f"{split}_{fname}")
+                if not os.path.exists(dst_file):
+                    shutil.copy2(src_file, dst_file)
+                    total_copied += 1
+
+    print(f"  Merged {total_copied} files into {all_dir}")
+    return all_dir
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -282,82 +325,114 @@ def main():
     dataset = rf.workspace("hi-l9ueo").project("ich-s-7lnsj").version(1).download("folder")
     DATASET_DIR = dataset.location
 
-    val_transform = transforms.Compose([
-        transforms.Resize(TARGET_SIZE), transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+    # Fix: Roboflow may name the folder 'validation' instead of 'valid'
+    valid_path = os.path.join(DATASET_DIR, "valid")
+    validation_path = os.path.join(DATASET_DIR, "validation")
+    if not os.path.exists(valid_path) and os.path.exists(validation_path):
+        os.rename(validation_path, valid_path)
+        print("  Renamed 'validation' -> 'valid'")
+
+    # ──────────────────────────────────────────────────────────────────────
+    # KEY FIX: Merge all splits into one folder, then do proper k-fold
+    # ──────────────────────────────────────────────────────────────────────
+    print("\nMerging dataset splits for proper cross-validation...")
+    all_dir = merge_splits_to_single_folder(DATASET_DIR)
+
+    # Transforms
     train_aug = transforms.Compose([
         transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(), transforms.RandomRotation(15),
         transforms.TrivialAugmentWide(), transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         transforms.RandomErasing(p=0.2, scale=(0.02, 0.2))])
+    val_transform = transforms.Compose([
+        transforms.Resize(TARGET_SIZE), transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    full_train = datasets.ImageFolder(os.path.join(DATASET_DIR, "train"), transform=val_transform)
-    full_val   = datasets.ImageFolder(os.path.join(DATASET_DIR, "valid"), transform=val_transform)
-    full_test  = datasets.ImageFolder(os.path.join(DATASET_DIR, "test"),  transform=val_transform)
-
-    all_targets = list(full_train.targets) + list(full_val.targets) + list(full_test.targets)
-    n_train = len(full_train)
-    n_val   = len(full_val)
-    class_names = full_train.classes
+    # Load ALL images into a single dataset (no augmentation -- we apply per-subset)
+    full_dataset = datasets.ImageFolder(all_dir, transform=val_transform)
+    all_targets = np.array(full_dataset.targets)
+    class_names = full_dataset.classes
     num_classes = len(class_names)
-    print(f"Total samples: {len(all_targets)} | Classes: {class_names}")
+    print(f"Total samples: {len(full_dataset)} | Classes: {class_names}")
+
+    # Also create an augmented version (same folder, different transform)
+    aug_dataset = datasets.ImageFolder(all_dir, transform=train_aug)
 
     skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_SEED)
-    all_indices = list(range(len(all_targets)))
 
     fold_results = []
     all_y_true, all_y_pred = [], []
 
-    for fold, (train_idx, test_idx) in enumerate(skf.split(all_indices, all_targets)):
+    for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.arange(len(full_dataset)), all_targets)):
         print(f"\n{'='*60}")
         print(f"  FOLD {fold + 1}/{N_FOLDS}")
         print(f"{'='*60}")
 
-        def make_fold_dataset(global_indices, aug=False):
-            train_part = [gi for gi in global_indices if gi < n_train]
-            val_part = [gi - n_train for gi in global_indices if n_train <= gi < n_train + n_val]
-            test_part = [gi - n_train - n_val for gi in global_indices if gi >= n_train + n_val]
-            subsets = []
-            if train_part:
-                ds = datasets.ImageFolder(os.path.join(DATASET_DIR, "train"),
-                                          transform=train_aug if aug else val_transform)
-                subsets.append(Subset(ds, train_part))
-            if val_part:
-                subsets.append(Subset(full_val, val_part))
-            if test_part:
-                subsets.append(Subset(full_test, test_part))
-            return ConcatDataset(subsets)
+        # Split train_val into train (90%) and val (10%) for model selection
+        train_val_targets = all_targets[train_val_idx]
+        n_val = max(1, len(train_val_idx) // 9)  # ~10% for validation
+        rng = np.random.default_rng(RANDOM_SEED + fold)
+        shuffled = rng.permutation(len(train_val_idx))
+        val_local_idx = shuffled[:n_val]
+        train_local_idx = shuffled[n_val:]
 
-        fold_train_ds = make_fold_dataset(train_idx, aug=True)
-        fold_test_ds  = make_fold_dataset(test_idx, aug=False)
+        train_idx = train_val_idx[train_local_idx]
+        val_idx = train_val_idx[val_local_idx]
+
+        print(f"  Train: {len(train_idx)} | Val: {len(val_idx)} | Test: {len(test_idx)}")
+
+        # Create subsets -- train uses augmented dataset, val/test use clean
+        fold_train_ds = Subset(aug_dataset, train_idx)
+        fold_val_ds   = Subset(full_dataset, val_idx)
+        fold_test_ds  = Subset(full_dataset, test_idx)
+
+        # Verify label integrity
+        sample_train_labels = [all_targets[i] for i in train_idx[:5]]
+        sample_test_labels = [all_targets[i] for i in test_idx[:5]]
+        print(f"  Train label sample: {sample_train_labels}")
+        print(f"  Test label sample:  {sample_test_labels}")
 
         num_workers = 0 if os.name == 'nt' else 2
-        fold_train_loader = DataLoader(fold_train_ds, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers)
+        g = torch.Generator(); g.manual_seed(RANDOM_SEED + fold)
+        fold_train_loader = DataLoader(fold_train_ds, batch_size=BATCH_SIZE, shuffle=True,
+                                       num_workers=num_workers, generator=g)
+        fold_val_loader   = DataLoader(fold_val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
         fold_test_loader  = DataLoader(fold_test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
 
-        fold_labels = [all_targets[i] for i in train_idx]
-        counts = np.bincount(fold_labels, minlength=num_classes)
+        # Class weights from fold training labels
+        fold_train_labels = all_targets[train_idx]
+        counts = np.bincount(fold_train_labels, minlength=num_classes)
         cw = torch.tensor(
-            [len(fold_labels) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float).to(DEVICE)
+            [len(fold_train_labels) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float).to(DEVICE)
 
         model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
         criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
-        best_val_loss = float('inf')
+        # ── KEY FIX: Select best model by VALIDATION accuracy ──
+        best_val_acc = 0.0
         best_state = None
 
         for epoch in range(EPOCHS):
             tr_loss, tr_acc = train_one_epoch(model, fold_train_loader, criterion, optimizer)
             scheduler.step()
+
+            # Evaluate on validation set every epoch for model selection
+            _, val_yt, val_yp = eval_loader(model, fold_val_loader, criterion)
+            val_acc = accuracy_score(val_yt, val_yp)
+
             if epoch % 5 == 0 or epoch == EPOCHS - 1:
-                print(f"  Epoch {epoch+1:2d}/{EPOCHS} | Train Acc: {tr_acc:.4f}")
-            if tr_loss < best_val_loss:
-                best_val_loss = tr_loss
+                print(f"  Epoch {epoch+1:2d}/{EPOCHS} | Train Acc: {tr_acc:.4f} | Val Acc: {val_acc:.4f}")
+
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
                 best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
 
+        print(f"  Best Val Acc: {best_val_acc:.4f}")
+
+        # Load best checkpoint and evaluate on held-out test fold
         model.load_state_dict({k: v.to(DEVICE) for k, v in best_state.items()})
         _, y_true_fold, y_pred_fold = eval_loader(model, fold_test_loader, criterion)
 
@@ -368,6 +443,7 @@ def main():
 
         print(f"\n  Fold {fold+1}: Acc={acc*100:.2f}% (CI: {acc_lo*100:.2f}-{acc_hi*100:.2f}%)")
         print(f"    Macro F1={macro_f1:.4f}  Wtd F1={wtd_f1:.4f}")
+        print(classification_report(y_true_fold, y_pred_fold, target_names=class_names, digits=4))
 
         fold_results.append({
             'fold': fold + 1, 'accuracy': acc, 'acc_ci_lo': acc_lo, 'acc_ci_hi': acc_hi,
@@ -392,6 +468,7 @@ def main():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+    # ── Summary ──────────────────────────────────────────────────────────
     accs = [r['accuracy'] for r in fold_results]
     mf1s = [r['macro_f1'] for r in fold_results]
     wf1s = [r['weighted_f1'] for r in fold_results]
