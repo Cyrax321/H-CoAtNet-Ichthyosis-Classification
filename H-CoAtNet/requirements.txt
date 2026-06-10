@@ -1,4 +1,4 @@
-# H-CoAtNet: Ichthyosis Classification
+# WaveCoAtNet: Ichthyosis Classification
 # Requirements file — all packages needed to reproduce experiments
 
 # ── Core Deep Learning ────────────────────────────────────────────────

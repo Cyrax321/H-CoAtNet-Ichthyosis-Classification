@@ -17,11 +17,11 @@ contained herein is **strictly prohibited** without explicit written permission 
 </div>
 
 ---
-## **Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification(H-CoAtNet)**
+## **Wavelet-enhanced Convolutional Attention Network for Ichthyosis Classification (WaveCoAtNet)**
 
 ## **Official Research Codebase**
 
-This repository contains the **reference implementation** of **H-CoAtNet**, a hierarchically enhanced hybrid convolution–transformer framework for **multi-class Ichthyosis subtype classification** from dermatological images.
+This repository contains the **reference implementation** of **WaveCoAtNet**, a wavelet-enhanced convolutional attention network with prototype-anchored token selection for **multi-class Ichthyosis subtype classification** from dermatological images.
 
 The release supports **methodological verification, benchmarking, and reproducibility** for rare disease medical image analysis.
 
@@ -29,16 +29,16 @@ The release supports **methodological verification, benchmarking, and reproducib
 
 ## 📄 **Associated Paper**
 
-**Hierarchical Hybrid Learning: Enhanced Classification of Ichthyosis Variants in Dermatological Images Using H-CoAtNet **
+**Wavelet-enhanced Classification of Ichthyosis Variants in Dermatological Images Using WaveCoAtNet**
 
 Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan
 *(Under Review)*
 
 ---
 
-## 🔧 **Repository Structure and Execution Context (Critical)**
+## 🔧 **Repository Structure**
 
-After cloning, note that the **actual project root** is the inner `H-CoAtNet/` directory.
+After cloning, the **actual project root** is the inner `H-CoAtNet/` directory.
 
 ```bash
 git clone https://github.com/Cyrax321/H-CoAtNet-Ichthyosis-Classification.git
@@ -46,13 +46,12 @@ cd H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
 ```
 
 All commands **must be executed from this directory**.
-Running commands from the outer directory will result in missing file or module errors.
 
 ```
 H-CoAtNet/
 ├── requirements.txt
 ├── proposed/
-│   └── train_h_coatnet.py              # Proposed model — H-CoAtNet
+│   └── train_h_coatnet.py              # WaveCoAtNet (proposed)
 ├── baselines/
 │   ├── pretrained/                     # Fine-tuned from ImageNet weights
 │   │   ├── train_efficientnet_b0.py    # EfficientNet-B0
@@ -69,35 +68,59 @@ H-CoAtNet/
 │       └── train_vit.py
 └── evaluation/
     ├── crossval.py                      # 5-fold cross-validation + McNemar
-    ├── ablation.py                      # Ablation study (4 conditions)
-    └── gradcam.py                       # Grad-CAM visualizations
+    ├── ablation.py                      # Ablation study (8 conditions)
+    ├── gradcam.py                       # Grad-CAM visualizations
+    └── generate_visualizations.py       # 13 publication-quality figures
 ```
 
-All commands must be run from inside the `H-CoAtNet/` directory.lassification is challenging due to:
+---
 
-* Extreme **class imbalance**
-* **Subtle morphological differences** between subtypes
-* **Limited annotated medical datasets**
+## 1. **Problem Statement**
 
-H-CoAtNet addresses these challenges through **hybrid convolution–transformer modeling** with hierarchical feature refinement.
+Automated ichthyosis subtype classification is challenging due to:
+
+* Extreme **class imbalance** across rare subtypes
+* **Subtle morphological differences** (e.g., plate-like fissures vs. fish-scale patterns)
+* **Limited annotated medical datasets** for rare dermatological conditions
+
+WaveCoAtNet addresses these through three novel architectural contributions combining frequency-aware feature fusion, prototype-guided token selection, and contrastive representation learning.
 
 ---
 
-## 3. **Method Overview**
+## 2. **Method Overview — Novel Contributions**
 
-H-CoAtNet integrates three core architectural components:
+WaveCoAtNet integrates three independently ablatable modules:
 
-* Convolutional stem for localized texture and scale modeling
-* Transformer blocks for global contextual dependency learning
-* Hierarchical squeeze-excitation with progressive token selection
+### Wavelet-Guided Frequency-Decomposed Cross-Attention (WG-FDCA)
 
-This design balances **inductive bias**, **global reasoning**, and **computational efficiency**, optimized for rare disease image classification.
+Decomposes early CNN features via 2D Haar DWT into structure (LL sub-band) and texture (LH+HL+HH) frequency streams. Dual-stream cross-attention with a learnable per-token frequency gate dynamically balances structure vs. texture based on image content — plate-like fissures in Harlequin Ichthyosis (low-freq) vs. fish-scale patterns in Ichthyosis Vulgaris (high-freq).
+
+### Prototype-Anchored Dynamic Token Selection (PA-DTS)
+
+Selects diagnostically relevant tokens by scoring them against learnable class prototypes (updated via EMA). Token importance combines three signals: prototype affinity, affinity entropy (retains ambiguous boundary tokens), and channel attention. An adaptive keep-ratio predictor adjusts pruning aggressiveness per image.
+
+### Supervised Contrastive Token Regularization (SCTR)
+
+Auxiliary SupCon loss on mean-pooled token embeddings. Forces same-class representations to cluster and different-class to separate, improving inter-class discriminability for rare subtypes like Netherton Syndrome.
+
+### Architecture Flow
+
+```
+Input (224×224) → ConvNeXt Stem → Stage 1 (96ch, 56×56)
+                                → Stage 2 (192ch, 28×28)
+    Stage 1 → Haar DWT → LL / (LH+HL+HH) → WG-FDCA ← Stage 2 queries
+    → Positional Embedding → ViT Blocks (2×, dim=192, heads=6)
+    → Reshape → Stage 3 (384ch, 14×14) → Stage 4 (768ch, 7×7)
+    → Flatten → PA-DTS (adaptive token selection)
+    → Mean Pool → LayerNorm → Classifier
+    → SCTR (training only): CE + 0.1 × SupCon(T=0.07)
+```
 
 ---
 
-## 4. **Dataset Description**
+## 3. **Dataset Description**
 
-The dataset used in this study contains **1,580 dermatological images** distributed across **five diagnostic categories**:
+The dataset contains **1,580 dermatological images** across **five diagnostic categories**:
 
 * Harlequin Ichthyosis (HI)
 * Ichthyosis Vulgaris (IV)
@@ -111,81 +134,40 @@ Images are resized to **224 × 224**, normalized using ImageNet statistics, and 
 
 ---
 
-##  5. **Dataset Access and API Configuration (Required Before Running Code)**
+## 4. **Dataset Access and API Configuration**
 
-To ensure **controlled access, versioning, and reproducibility**, the dataset is hosted using **Roboflow**.
+The dataset is hosted on **Roboflow** for controlled access and versioning.
 
-### 📎 Dataset Project Link
-
- **Roboflow Dataset Page**
+**Roboflow Dataset Page:**
 [https://universe.roboflow.com/hi-l9ueo/ich-s-7lnsj](https://universe.roboflow.com/hi-l9ueo/ich-s-7lnsj)
 
----
+### How to Access
 
-## **How to Access the Data**
+1. Click the dataset link above
+2. Navigate to **Dataset** → **Download Dataset**
+3. Enable **Show download code** and copy the API key
 
-To obtain your **Roboflow API key**, follow these steps:
+### Adding the API Key
 
-1. Click the **dataset project link** above.
-2. Navigate to **Dataset** in the left sidebar.
-3. Click **Download Dataset**.
-4. Select **Download Dataset (Get a code snippet or ZIP file)**.
-5. Ensure **Show download code** is enabled.
-6. Choose:
-   **“Custom train this dataset using the provided code snippet in a notebook.”**
-7. Copy **only the API key string** from the snippet.
-
-### Example API key format
+Open `proposed/train_h_coatnet.py` and set:
 
 ```python
-api_key="xxxxxxxxxxxxxxxxxxx"
-```
-
----
-
-## 🧩 **Adding the API Key to the Code (Mandatory)**
-
-Before executing **any training script**, the API key must be added.
-
-### Example: H-CoAtNet training script
-
-Open:
-
-```
-proposed/train_h_coatnet.py
-```
-
-Add the configuration block near the top of the file:
-
-```python
-#  Configuration
 API_KEY = "PASTE_YOUR_KEY_HERE"
-
 ```
 
-Then initialize the dataset:
-
-```python
-from roboflow import Roboflow
-
-rf = Roboflow(api_key=API_KEY)
-```
-
-**Important notes**
-
-* Use the **same dataset version** for all baseline and proposed models.
+Use the **same dataset version** for all models.
 
 ---
 
-## 6. **Training and Execution**
+## 5. **Training and Execution**
 
-### Proposed Method (H-CoAtNet)
+### Proposed Method (WaveCoAtNet)
 
 ```bash
 python proposed/train_h_coatnet.py
 ```
 
-### Pretrained Baselines (Primary Comparisons)
+### Pretrained Baselines
 
 ```bash
 python baselines/pretrained/train_efficientnet_b0.py
@@ -205,58 +187,38 @@ python baselines/scratch/train_efficientnet_b0.py
 python baselines/scratch/train_swin_t.py
 python baselines/scratch/train_vit.py
 ```
----
-
-## 7. **Experimental Protocol (Reproducibility)**
-
-* Optimizer: Adam
-* Epochs: 30
-* Dropout: 0.2
-* Weight decay enabled
-* No external pretraining (trained from scratch)
-* Fixed random seeds
-
-### Hardware
-
-* Apple MacBook Pro (M3 Pro, 18 GB RAM)
-* Google Colab (verification only)
-
-No TPU-specific optimizations are used.
 
 ---
 
-## 8. **Evaluation Metrics**
-
-* Accuracy
-* Macro-averaged Precision, Recall, F1-score
-* Weighted F1-score
-
-Macro-averaged metrics are emphasized due to **class imbalance** inherent in rare disease datasets.
-
----
-
-## 9. **Results Summary**
-
-| Model                | Accuracy   | Macro F1   | Weighted F1 |
-| -------------------- | ---------- | ---------- | ----------- |
-```
-
----
-
-## 4. **Ablation Study**
+## 6. **Ablation Study (8 Conditions)**
 
 ```bash
 python evaluation/ablation.py --condition full
-python evaluation/ablation.py --condition no_hse
+python evaluation/ablation.py --condition no_wgfdca
 python evaluation/ablation.py --condition no_transformer
+python evaluation/ablation.py --condition no_padts
+python evaluation/ablation.py --condition no_sctr
+python evaluation/ablation.py --condition fixed_pruning
+python evaluation/ablation.py --condition no_prototypes
 python evaluation/ablation.py --condition baseline
 ```
 
-Results are appended to `ablation_results.csv` after each run.
+| Condition | Description |
+|---|---|
+| `full` | WaveCoAtNet (all modules) |
+| `no_wgfdca` | Plain cross-attention (no wavelet decomposition) |
+| `no_transformer` | No ViT blocks, no cross-attention |
+| `no_padts` | Global average pooling (no token selection) |
+| `no_sctr` | CE loss only (no contrastive regularization) |
+| `fixed_pruning` | Fixed SE pruning (75% → 50%) |
+| `no_prototypes` | SE-based selection without class prototypes |
+| `baseline` | Plain ConvNeXt-Tiny fine-tuned |
+
+Results append to `ablation_results.csv`.
 
 ---
 
-## 5. **Cross-Validation and Statistical Tests**
+## 7. **Cross-Validation and Statistical Tests**
 
 ```bash
 python evaluation/crossval.py
@@ -270,7 +232,7 @@ Outputs:
 
 ---
 
-## 6. **Grad-CAM Interpretability**
+## 8. **Grad-CAM Interpretability**
 
 ```bash
 python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
@@ -282,40 +244,69 @@ Outputs:
 
 ---
 
-## 7. **Hyperparameter Table**
+## 9. **Publication Figure Generation**
 
-| Parameter | H-CoAtNet | Pretrained Baselines |
+```bash
+python evaluation/generate_visualizations.py
+```
+
+Generates 13 publication-quality figures (300 DPI) in the `figures/` directory:
+
+| Figure | Description |
+|---|---|
+| ROC curves | Per-class and macro-averaged |
+| Precision-Recall curves | Per-class |
+| Model comparison bar chart | Accuracy + Macro F1 + Weighted F1 |
+| Confusion matrix comparison | Side-by-side all models |
+| t-SNE embeddings | Feature space visualisation |
+| Dataset sample grid | Representative images per class |
+| Class distribution | Bar chart with counts |
+| Per-class F1 heatmap | Models × classes |
+| McNemar p-value heatmap | Statistical significance matrix |
+| Model efficiency bubble | Accuracy vs. parameters vs. speed |
+| Ablation bar chart | Module contribution analysis |
+| Failure analysis grid | Misclassified samples |
+| Comprehensive results table | All metrics as image |
+
+---
+
+## 10. **Hyperparameter Table**
+
+| Parameter | WaveCoAtNet | Pretrained Baselines |
 |---|---|---|
 | Backbone | ConvNeXt-Tiny (pretrained=True) | Model-specific (pretrained=True) |
 | Input resolution | 224 × 224 | 224 × 224 |
 | Batch size | 24 | 24 (ViT: 16) |
 | Epochs | 30 | 30 |
 | Optimiser | AdamW | AdamW (layer-wise LR) |
-| Backbone LR | 5e-5 | 1e-5 |
-| Head LR | 5e-5 | 1e-4 |
+| Learning rate | 5e-5 | 1e-5 (backbone), 1e-4 (head) |
 | Weight decay | 0.01 | 0.01 |
 | LR schedule | CosineAnnealing (T_max=30) | CosineAnnealing |
-| Loss | CrossEntropy (label_smoothing=0.1, class_weights=True) | Same |
+| Loss | CE(label_smoothing=0.1, class_weights) + 0.1×SupCon(T=0.07) | CE(label_smoothing=0.1) |
 | Dropout | 0.2 | 0.2 |
 | Random seed | 42 | 42 |
 | ViT blocks | 2 (dim=192, heads=6) | — |
-| HSE stages | 2 (keep 75%, then 50% tokens) | — |
+| WG-FDCA | Haar DWT, 4-head dual-stream cross-attn | — |
+| PA-DTS | 5 prototypes, EMA=0.999, keep 30–80% | — |
+| SCTR weight | λ=0.1, T=0.07, proj_dim=128 | — |
 | Augmentation | RandomResizedCrop, HFlip, Rotation(15°), TrivialAugmentWide, RandomErasing(p=0.2) | Same |
 
 ---
 
-## 8. **Results Summary**
+## 11. **Results Summary**
 
 > **Note:** From-scratch baselines are retained for reference. Pretrained baselines are the primary comparison.
 
 | Model | Training | Accuracy | Macro F1 |
 |---|---|---|---|
-| **H-CoAtNet (Ours)** | Pretrained backbone | **To be updated after CV** | — |
+| **WaveCoAtNet (Ours)** | Pretrained backbone | **To be updated after CV** | — |
 | EfficientNet-B0 | Pretrained (ImageNet) | — | — |
 | Swin-T | Pretrained (ImageNet) | — | — |
 | ViT-B/16 | Pretrained (ImageNet-21k) | — | — |
 | CoAtNet | Pretrained | — | — |
 | GFT | Pretrained | — | — |
+| BiomedCLIP | Foundation model | — | — |
+| DINOv2 | Foundation model | — | — |
 | EfficientNet-B0 | From scratch | 66.46% | 0.5938 |
 | Swin Transformer | From scratch | 82.91% | 0.7477 |
 | ViT | From scratch | 72.15% | 0.6310 |
@@ -324,7 +315,24 @@ Outputs:
 
 ---
 
-## 9. **Ethical Considerations**
+## 12. **Experimental Protocol (Reproducibility)**
+
+* Optimizer: AdamW (lr=5e-5, weight_decay=0.01)
+* LR schedule: CosineAnnealingLR
+* Epochs: 30
+* Dropout: 0.2
+* Loss: CrossEntropy + SupCon (λ=0.1)
+* Fixed random seed: 42
+* All results reproducible with `torch.backends.cudnn.deterministic = True`
+
+### Hardware
+
+* Apple MacBook Pro (M3 Pro, 18 GB RAM)
+* Google Colab T4 GPU (verification and reproducibility)
+
+---
+
+## 13. **Ethical Considerations**
 
 * No patient-identifiable data is used
 * Images are sourced from publicly available materials
@@ -332,7 +340,7 @@ Outputs:
 
 ---
 
-## 10. **Contact**
+## 14. **Contact**
 
 **Anandhu P. Shaji** — [reach.anandhu.me@gmail.com](mailto:reach.anandhu.me@gmail.com)
 
@@ -343,32 +351,16 @@ Outputs:
 ```
 Copyright © 2026 The Authors. All Rights Reserved.
 
-This repository, titled “Hierarchically Enhanced Hybrid Learning for Ichthyosis Classification (H-CoAtNet)”, and all associated materials — including but not limited to source code, experimental pipelines, benchmark datasets, execution logs, research documentation, and the accompanying manuscript — are provided solely for the purposes of peer review, validation, and reproducibility assessment in connection with the submitted work:
+This repository, titled "Wavelet Frequency-decomposed Prototype-anchored Learning for Ichthyosis
+Classification (WaveCoAtNet)", and all associated materials — including but not
+limited to source code, experimental pipelines, benchmark datasets, execution logs,
+research documentation, and the accompanying manuscript — are provided solely for
+the purposes of peer review, validation, and reproducibility assessment.
 
-“Hierarchical Hybrid Learning: Enhanced Classification of Ichthyosis Variants in Dermatological Images Using H-CoAtNet”
+"Wavelet Frequency-decomposed Prototype-anchored Classification of Ichthyosis Variants
+in Dermatological Images Using WaveCoAtNet"
 Athul Joe Joseph Palliparambil, Anandhu P Shaji, Rajeev Rajan (Under Review, 2025)
 
-This repository constitutes the official research codebase for a hierarchically enhanced hybrid convolution–transformer framework designed for multi-class Ichthyosis subtype classification from dermatological imagery.
-This is NOT an open-source release.
-
-Restrictions
-
- • The following actions are strictly prohibited without prior explicit written consent from the authors:
- • Reuse of any portion of the codebase in external projects, systems, or products
- • Redistribution of this repository or its contents, in full or in part
- • Modification, adaptation, translation, or creation of derivative works
- • Deployment of the framework or its components in production or clinical systems
- • Citation or reference to unpublished results prior to formal publication
- • Utilization of repository contents for training machine learning models
-
-Legal Notice
-Unauthorized use may constitute copyright infringement, intellectual property violation, and/or misappropriation of unpublished academic material.
+Unauthorized reproduction, redistribution, modification, or commercial deployment
+of any content within this repository is strictly prohibited.
 ```
-
-> **Permitted use:** Reviewers assigned by the programme committee may read, compile, and run the code solely for the purpose of evaluating the submitted manuscript. No other use is permitted.
-
----
-
-<div align="center">
-
-

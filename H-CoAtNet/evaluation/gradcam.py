@@ -1,8 +1,8 @@
 """
-H-CoAtNet: Grad-CAM Visualization
-==================================
+WaveCoAtNet: Grad-CAM Visualization
+======================================
 Generates class-discriminative heatmaps using Gradient-weighted Class
-Activation Mapping (Grad-CAM) on the final ConvNeXt stage of H-CoAtNet.
+Activation Mapping (Grad-CAM) on the final ConvNeXt stage of WaveCoAtNet.
 
 Usage:
     python evaluation/gradcam.py --checkpoint best_h_coatnet.pth
@@ -44,102 +44,112 @@ IMAGENET_STD  = np.array([0.229, 0.224, 0.225])
 SAMPLES_PER_CLASS = 3
 
 
-# ── Model modules (self-contained, matches train_h_coatnet.py) ──────────────
+# ── Model modules (self-contained, matches train_h_coatnet.py v2) ────────────
 
-class MultiScaleCrossAttentionFusion(nn.Module):
+def haar_dwt_2d(x):
+    x_l = (x[:, :, :, 0::2] + x[:, :, :, 1::2]) * 0.5
+    x_h = (x[:, :, :, 0::2] - x[:, :, :, 1::2]) * 0.5
+    ll = (x_l[:, :, 0::2, :] + x_l[:, :, 1::2, :]) * 0.5
+    lh = (x_l[:, :, 0::2, :] - x_l[:, :, 1::2, :]) * 0.5
+    hl = (x_h[:, :, 0::2, :] + x_h[:, :, 1::2, :]) * 0.5
+    hh = (x_h[:, :, 0::2, :] - x_h[:, :, 1::2, :]) * 0.5
+    return ll, lh, hl, hh
+
+
+class WaveletFrequencyDecomposedCrossAttention(nn.Module):
     def __init__(self, dim_low=96, dim_high=192, num_heads=4, dropout=0.1):
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = dim_high // num_heads
         self.scale = self.head_dim ** -0.5
-        self.proj_low = nn.Sequential(
-            nn.Conv2d(dim_low, dim_high, kernel_size=1, bias=False),
-            nn.BatchNorm2d(dim_high), nn.GELU())
-        self.downsample_low = nn.AdaptiveAvgPool2d(28)
+        self.proj_low_freq = nn.Sequential(
+            nn.Conv2d(dim_low, dim_high, 1, bias=False), nn.BatchNorm2d(dim_high), nn.GELU())
+        self.proj_high_freq = nn.Sequential(
+            nn.Conv2d(dim_low * 3, dim_high, 1, bias=False), nn.BatchNorm2d(dim_high), nn.GELU())
         self.q_proj = nn.Linear(dim_high, dim_high, bias=False)
-        self.k_proj = nn.Linear(dim_high, dim_high, bias=False)
-        self.v_proj = nn.Linear(dim_high, dim_high, bias=False)
-        self.out_proj = nn.Linear(dim_high, dim_high)
+        self.norm_q = nn.LayerNorm(dim_high)
+        self.k_proj_low = nn.Linear(dim_high, dim_high, bias=False)
+        self.v_proj_low = nn.Linear(dim_high, dim_high, bias=False)
+        self.out_proj_low = nn.Linear(dim_high, dim_high)
+        self.norm_kv_low = nn.LayerNorm(dim_high)
+        self.k_proj_high = nn.Linear(dim_high, dim_high, bias=False)
+        self.v_proj_high = nn.Linear(dim_high, dim_high, bias=False)
+        self.out_proj_high = nn.Linear(dim_high, dim_high)
+        self.norm_kv_high = nn.LayerNorm(dim_high)
         self.attn_drop = nn.Dropout(dropout * 0.5)
         self.proj_drop = nn.Dropout(dropout)
-        self.norm_q = nn.LayerNorm(dim_high)
-        self.norm_kv = nn.LayerNorm(dim_high)
+        self.freq_gate = nn.Sequential(
+            nn.Linear(dim_high * 2, dim_high // 4), nn.GELU(), nn.Dropout(dropout),
+            nn.Linear(dim_high // 4, 1), nn.Sigmoid())
         self.ffn = nn.Sequential(
             nn.Linear(dim_high, dim_high * 2), nn.GELU(), nn.Dropout(dropout),
             nn.Linear(dim_high * 2, dim_high), nn.Dropout(dropout))
         self.norm_ffn = nn.LayerNorm(dim_high)
 
-    def forward(self, feat_low, feat_high):
-        B = feat_low.shape[0]
-        kv_feat = self.downsample_low(self.proj_low(feat_low))
-        kv_tokens = kv_feat.flatten(2).transpose(1, 2)
-        q_tokens = feat_high.flatten(2).transpose(1, 2)
-        q = self.norm_q(q_tokens)
-        kv = self.norm_kv(kv_tokens)
-        Q = self.q_proj(q).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        K = self.k_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        V = self.v_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
-        attn = (Q @ K.transpose(-2, -1)) * self.scale
-        attn = self.attn_drop(attn.softmax(dim=-1))
+    def _cross_attend(self, q_tokens, kv_tokens, k_proj, v_proj, out_proj, norm_kv):
+        B = q_tokens.shape[0]
+        kv = norm_kv(kv_tokens)
+        Q = self.q_proj(self.norm_q(q_tokens)).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        K = k_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        V = v_proj(kv).reshape(B, -1, self.num_heads, self.head_dim).transpose(1, 2)
+        attn = self.attn_drop((Q @ K.transpose(-2, -1) * self.scale).softmax(dim=-1))
         out = (attn @ V).transpose(1, 2).reshape(B, -1, self.num_heads * self.head_dim)
-        out = self.proj_drop(self.out_proj(out))
-        fused = q_tokens + out
-        fused = fused + self.ffn(self.norm_ffn(fused))
-        return fused
+        return self.proj_drop(out_proj(out))
+
+    def forward(self, feat_low, feat_high):
+        ll, lh, hl, hh = haar_dwt_2d(feat_low)
+        low_tokens = self.proj_low_freq(ll).flatten(2).transpose(1, 2)
+        high_tokens = self.proj_high_freq(torch.cat([lh, hl, hh], dim=1)).flatten(2).transpose(1, 2)
+        q_tokens = feat_high.flatten(2).transpose(1, 2)
+        low_out = self._cross_attend(q_tokens, low_tokens, self.k_proj_low, self.v_proj_low, self.out_proj_low, self.norm_kv_low)
+        high_out = self._cross_attend(q_tokens, high_tokens, self.k_proj_high, self.v_proj_high, self.out_proj_high, self.norm_kv_high)
+        gate = self.freq_gate(torch.cat([low_out, high_out], dim=-1))
+        fused = q_tokens + gate * high_out + (1 - gate) * low_out
+        return fused + self.ffn(self.norm_ffn(fused))
 
 
-class DualPathChannelSpatialHSE(nn.Module):
-    def __init__(self, dim, reduction=16, dropout=0.0):
+class PrototypeAnchoredTokenSelection(nn.Module):
+    def __init__(self, dim, num_classes=5, min_keep=0.3, max_keep=0.8, dropout=0.0):
         super().__init__()
-        mid = max(1, dim // reduction)
-        self.channel_se = nn.Sequential(
-            nn.Linear(dim, mid, bias=True), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(mid, dim, bias=True), nn.Sigmoid())
-        self.spatial_mlp = nn.Sequential(
-            nn.Linear(dim * 2, mid, bias=True), nn.GELU(), nn.Dropout(dropout),
-            nn.Linear(mid, 1, bias=True))
-        self.alpha = nn.Parameter(torch.tensor(0.5))
+        self.dim = dim; self.num_classes = num_classes
+        self.min_keep = min_keep; self.max_keep = max_keep
+        self.register_buffer('prototypes', torch.randn(num_classes, dim) * 0.02)
+        mid = max(1, dim // 16)
+        self.channel_scorer = nn.Sequential(nn.Linear(dim, mid), nn.GELU(), nn.Dropout(dropout), nn.Linear(mid, 1))
+        self.importance_weights = nn.Parameter(torch.tensor([1.0, 0.5, 0.5]))
+        self.keep_predictor = nn.Sequential(nn.Linear(dim + 3, 32), nn.GELU(), nn.Linear(32, 1), nn.Sigmoid())
         self.norm = nn.LayerNorm(dim)
 
     def forward(self, x):
-        x_normed = self.norm(x)
-        global_ctx = x_normed.mean(dim=1)
-        channel_gates = self.channel_se(global_ctx).unsqueeze(1)
-        out = x * channel_gates
-        ch_scores = out.norm(dim=-1)
-        ch_scores = (ch_scores - ch_scores.mean(dim=-1, keepdim=True)) / (ch_scores.std(dim=-1, keepdim=True) + 1e-6)
-        B, N, C = x.shape
-        sp_input = torch.cat([x_normed, global_ctx.unsqueeze(1).expand(-1, N, -1)], dim=-1)
-        sp_scores = self.spatial_mlp(sp_input).squeeze(-1)
-        sp_scores = (sp_scores - sp_scores.mean(dim=-1, keepdim=True)) / (sp_scores.std(dim=-1, keepdim=True) + 1e-6)
-        alpha = torch.sigmoid(self.alpha)
-        importance = F.softmax(alpha * ch_scores + (1 - alpha) * sp_scores, dim=-1)
-        return out, importance
+        B, N, C = x.shape; x_n = self.norm(x)
+        p_n = F.normalize(self.prototypes, dim=-1); t_n = F.normalize(x_n, dim=-1)
+        sim = t_n @ p_n.T; aff = sim.max(-1).values
+        probs = F.softmax(sim / 0.1, -1); ent = -(probs * (probs + 1e-8).log()).sum(-1)
+        ch = self.channel_scorer(x_n).squeeze(-1)
+        def _zn(s):
+            return (s - s.mean(-1, keepdim=True)) / (s.std(-1, keepdim=True) + 1e-6)
+        w = F.softmax(self.importance_weights, 0)
+        imp = F.softmax(w[0]*_zn(aff) + w[1]*_zn(ent) + w[2]*_zn(ch), -1)
+        g = self.keep_predictor(torch.cat([x.mean(1), torch.stack([imp.mean(1), imp.std(1), imp.max(1).values], -1)], -1)).squeeze(-1)
+        g = self.min_keep + g * (self.max_keep - self.min_keep)
+        k = torch.clamp((g*N).long(), min=max(1, int(self.min_keep*N)), max=int(self.max_keep*N))[0].item()
+        _, idx = torch.topk(imp, k, dim=1)
+        bi = torch.arange(B, device=x.device).unsqueeze(1).expand(-1, k)
+        return x[bi, idx] * (1 + imp[bi, idx].unsqueeze(-1)), imp
 
 
-class AdaptiveTokenPruning(nn.Module):
-    def __init__(self, dim, min_keep=0.3, max_keep=0.9):
+class SupervisedContrastiveTokenLoss(nn.Module):
+    def __init__(self, embed_dim, proj_dim=128, temperature=0.07):
         super().__init__()
-        self.min_keep = min_keep
-        self.max_keep = max_keep
-        self.threshold_predictor = nn.Sequential(
-            nn.Linear(dim + 3, 32), nn.GELU(), nn.Linear(32, 1), nn.Sigmoid())
+        self.temperature = temperature
+        self.projector = nn.Sequential(nn.Linear(embed_dim, embed_dim), nn.GELU(), nn.Linear(embed_dim, proj_dim))
 
-    def forward(self, tokens, importance):
-        B, N, C = tokens.size()
-        global_feat = tokens.mean(dim=1)
-        imp_stats = torch.stack([importance.mean(dim=1), importance.std(dim=1),
-                                  importance.max(dim=1).values], dim=-1)
-        keep_ratio = self.threshold_predictor(torch.cat([global_feat, imp_stats], dim=-1)).squeeze(-1)
-        keep_ratio = self.min_keep + keep_ratio * (self.max_keep - self.min_keep)
-        k_val = torch.clamp((keep_ratio * N).long(), min=max(1, int(self.min_keep * N)),
-                             max=int(self.max_keep * N))[0].item()
-        _, top_k_idx = torch.topk(importance, k_val, dim=1)
-        batch_idx = torch.arange(B, device=tokens.device).unsqueeze(1).expand(-1, k_val)
-        return tokens[batch_idx, top_k_idx]
+    def forward(self, embeddings, labels):
+        return torch.tensor(0.0)  # Not needed at inference
 
 
-class HCoAtNet(nn.Module):
+class WaveCoAtNet(nn.Module):
+    """WaveCoAtNet — must match train_h_coatnet.py exactly for checkpoint loading."""
     def __init__(self, num_classes=5, vit_blocks=2, dropout=0.2):
         super().__init__()
         cnn = create_model('convnext_tiny', pretrained=False, num_classes=0)
@@ -150,43 +160,31 @@ class HCoAtNet(nn.Module):
         self.cnn_stage4 = cnn.stages[3]
 
         vit_dim = 192
-        self.mscaf = MultiScaleCrossAttentionFusion(
-            dim_low=96, dim_high=192, num_heads=4, dropout=dropout)
-        self.pos_embed = nn.Parameter(torch.zeros(1, 28 * 28, vit_dim))
+        self.wg_fdca = WaveletFrequencyDecomposedCrossAttention(96, 192, 4, dropout)
+        self.pos_embed = nn.Parameter(torch.zeros(1, 28*28, vit_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
         self.vit_blocks = nn.ModuleList([
-            Block(dim=vit_dim, num_heads=6, proj_drop=dropout, attn_drop=dropout * 0.5)
+            Block(dim=vit_dim, num_heads=6, proj_drop=dropout, attn_drop=dropout*0.5)
             for _ in range(vit_blocks)])
 
         final_dim = 768
-        self.dcshse_blocks = nn.ModuleList([
-            DualPathChannelSpatialHSE(dim=final_dim, reduction=16, dropout=dropout * 0.25)
-            for _ in range(2)])
-        self.latp_blocks = nn.ModuleList([
-            AdaptiveTokenPruning(dim=final_dim, min_keep=0.4, max_keep=0.85),
-            AdaptiveTokenPruning(dim=final_dim, min_keep=0.25, max_keep=0.7)])
+        self.pa_dts = PrototypeAnchoredTokenSelection(final_dim, num_classes, 0.3, 0.8, dropout*0.25)
+        self.sctr = SupervisedContrastiveTokenLoss(final_dim, 128, 0.07)
+        self.classifier = nn.Sequential(nn.LayerNorm(final_dim), nn.Dropout(dropout), nn.Linear(final_dim, num_classes))
 
-        self.classifier = nn.Sequential(
-            nn.LayerNorm(final_dim), nn.Dropout(dropout), nn.Linear(final_dim, num_classes))
-
-    def forward(self, x):
+    def forward(self, x, return_embeddings=False):
         x = self.cnn_stem(x)
-        feat_s1 = self.cnn_stage1(x)
-        feat_s2 = self.cnn_stage2(feat_s1)
-        fused = self.mscaf(feat_s1, feat_s2)
-        fused = fused + self.pos_embed
-        for blk in self.vit_blocks:
-            fused = blk(fused)
-        B = fused.shape[0]
-        x = fused.transpose(1, 2).reshape(B, 192, 28, 28)
-        x = self.cnn_stage3(x)
-        x = self.cnn_stage4(x)
+        s1 = self.cnn_stage1(x); s2 = self.cnn_stage2(s1)
+        fused = self.wg_fdca(s1, s2) + self.pos_embed
+        for blk in self.vit_blocks: fused = blk(fused)
+        B = fused.shape[0]; x = fused.transpose(1, 2).reshape(B, 192, 28, 28)
+        x = self.cnn_stage3(x); x = self.cnn_stage4(x)
         x = x.flatten(2).transpose(1, 2)
-        current = x
-        for dcshse, latp in zip(self.dcshse_blocks, self.latp_blocks):
-            tokens_attn, importance = dcshse(current)
-            current = latp(tokens_attn, importance)
-        return self.classifier(current.mean(dim=1))
+        selected, _ = self.pa_dts(x)
+        embeddings = selected.mean(dim=1)
+        logits = self.classifier(embeddings)
+        if return_embeddings: return logits, embeddings
+        return logits
 
 
 # ── Grad-CAM ────────────────────────────────────────────────────────────────
@@ -199,18 +197,24 @@ class GradCAM:
         self._fwd = target_layer.register_forward_hook(self._save_act)
         self._bwd = target_layer.register_full_backward_hook(self._save_grad)
 
-    def _save_act(self, m, i, o):
-        self.activations = o.detach()
+    def _save_act(self, module, inp, out):
+        self.activations = out.detach()
 
-    def _save_grad(self, m, gi, go):
-        self.gradients = go[0].detach()
+    def _save_grad(self, module, grad_in, grad_out):
+        self.gradients = grad_out[0].detach()
 
-    def generate(self, input_tensor, class_idx):
+    def generate(self, x, class_idx=None):
+        logits = self.model(x)
+        if class_idx is None:
+            class_idx = logits.argmax(dim=1).item()
         self.model.zero_grad()
-        logits = self.model(input_tensor)
-        logits[0, class_idx].backward()
-        w = self.gradients.mean(dim=[2, 3], keepdim=True)
-        cam = F.relu((w * self.activations).sum(dim=1, keepdim=True))
+        score = logits[0, class_idx]
+        score.backward(retain_graph=True)
+        grads = self.gradients
+        acts = self.activations
+        weights = grads.mean(dim=(2, 3), keepdim=True)
+        cam = (weights * acts).sum(dim=1, keepdim=True)
+        cam = F.relu(cam)
         cam = F.interpolate(cam, size=TARGET_SIZE, mode='bilinear', align_corners=False)
         cam = cam.squeeze().cpu().numpy()
         cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
@@ -221,32 +225,30 @@ class GradCAM:
         self._bwd.remove()
 
 
-def tensor_to_rgb(tensor):
-    img = tensor.squeeze(0).permute(1, 2, 0).cpu().numpy()
+def tensor_to_rgb(t):
+    img = t.cpu().numpy().transpose(1, 2, 0)
     img = img * IMAGENET_STD + IMAGENET_MEAN
-    return (np.clip(img, 0, 1) * 255).astype(np.uint8)
+    img = np.clip(img * 255, 0, 255).astype(np.uint8)
+    return img
 
 
-def apply_overlay(rgb, cam, alpha=0.45):
+def apply_overlay(img, cam, alpha=0.4):
     heatmap = cv2.applyColorMap((cam * 255).astype(np.uint8), cv2.COLORMAP_JET)
     heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
-    return cv2.addWeighted(rgb, 1 - alpha, heatmap, alpha, 0)
+    overlay = np.clip(alpha * heatmap + (1 - alpha) * img, 0, 255).astype(np.uint8)
+    return overlay
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="WaveCoAtNet Grad-CAM")
     parser.add_argument('--checkpoint', default='best_h_coatnet.pth')
-    parser.add_argument('--dataset_dir', default=None)
     parser.add_argument('--samples', type=int, default=SAMPLES_PER_CLASS)
     args = parser.parse_args()
 
-    if args.dataset_dir:
-        DATASET_DIR = args.dataset_dir
-    else:
-        from roboflow import Roboflow
-        rf = Roboflow(api_key="gXuxxWEMFJ8nK73o7pN7")
-        dataset = rf.workspace("hi-l9ueo").project("ich-s-7lnsj").version(1).download("folder")
-        DATASET_DIR = dataset.location
+    from roboflow import Roboflow
+    rf = Roboflow(api_key="gXuxxWEMFJ8nK73o7pN7")
+    dataset = rf.workspace("hi-l9ueo").project("ich-s-7lnsj").version(1).download("folder")
+    DATASET_DIR = dataset.location
 
     transform = transforms.Compose([
         transforms.Resize(TARGET_SIZE), transforms.ToTensor(),
@@ -255,7 +257,7 @@ def main():
     class_names = test_ds.classes
     num_classes = len(class_names)
 
-    model = HCoAtNet(num_classes=num_classes).to(DEVICE)
+    model = WaveCoAtNet(num_classes=num_classes).to(DEVICE)
     model.load_state_dict(torch.load(args.checkpoint, map_location=DEVICE, weights_only=True))
     model.eval()
 
@@ -308,7 +310,7 @@ def main():
             ax.imshow(ov); ax.axis('off')
             if c == 0: ax.set_ylabel(cn, fontsize=10, fontweight='bold', rotation=90, labelpad=5)
             if r == 0: ax.set_title(f"Sample {c+1}", fontsize=10)
-    fig.suptitle("H-CoAtNet: Grad-CAM Activation Maps", fontsize=13, fontweight='bold', y=1.01)
+    fig.suptitle("WaveCoAtNet: Grad-CAM Activation Maps", fontsize=13, fontweight='bold', y=1.01)
     plt.savefig("gradcam/gradcam_grid.png", dpi=300, bbox_inches='tight')
     plt.close()
     print("\nPublication grid saved: gradcam/gradcam_grid.png")
