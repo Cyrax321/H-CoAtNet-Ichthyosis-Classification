@@ -44,6 +44,8 @@ np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(RANDOM_SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 TARGET_SIZE  = (224, 224)
 BATCH_SIZE   = 24
@@ -52,6 +54,8 @@ LR           = 5e-5
 WEIGHT_DECAY = 0.01
 DROPOUT      = 0.2
 N_FOLDS      = 5
+GRAD_CLIP    = 1.0
+WARMUP_EPOCHS = 5
 DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SCTR_WEIGHT  = 0.1
@@ -276,6 +280,7 @@ def train_one_epoch(model, loader, criterion, optimizer):
         sctr = model.sctr(emb, tgts)
         loss = ce + SCTR_WEIGHT * sctr
         loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=GRAD_CLIP)
         model.pa_dts.update_prototypes(emb.detach(), tgts, PROTO_MOM)
         optimizer.step()
         total_loss += loss.item()
@@ -416,7 +421,12 @@ def main():
         model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
         criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
+        warmup_sched = torch.optim.lr_scheduler.LinearLR(
+            optimizer, start_factor=0.01, total_iters=WARMUP_EPOCHS)
+        cosine_sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=EPOCHS - WARMUP_EPOCHS)
+        scheduler = torch.optim.lr_scheduler.SequentialLR(
+            optimizer, [warmup_sched, cosine_sched], milestones=[WARMUP_EPOCHS])
 
         best_val_acc = 0.0
         best_state = None
