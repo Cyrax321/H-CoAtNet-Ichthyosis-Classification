@@ -1,8 +1,8 @@
 """
 WaveCoAtNet: 5-Fold Stratified Cross-Validation + McNemar's Test
 ===============================================================
-Runs stratified k-fold cross-validation on WaveCoAtNet and computes
-McNemar's test against all baselines whose prediction .npy files are present.
+Uses a custom dataset built from raw file paths -- no folder merging,
+no ConcatDataset, no Subset. Bulletproof data integrity.
 
 Usage:
     python evaluation/crossval.py
@@ -18,13 +18,13 @@ import os
 import csv
 import time
 import random
-import shutil
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
+from PIL import Image
 
 import numpy as np
 from scipy.stats import chi2
@@ -55,13 +55,58 @@ N_FOLDS      = 5
 DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SCTR_WEIGHT  = 0.1
-PROTO_MOM    = 0.99   # Lower than 0.999 for cold-start per fold
+PROTO_MOM    = 0.999   # Same as ablation -- 0.99 was too aggressive
 
 
-# ── Model definitions (matches train_wavecoatnet.py) ──────────────────────────
+# ── Simple path-based dataset (no ImageFolder, no Subset, no ConcatDataset) ──
+class PathDataset(Dataset):
+    """Dataset that loads images from file paths with explicit labels."""
+    def __init__(self, paths, labels, transform=None):
+        self.paths = paths
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.paths[idx]).convert('RGB')
+        if self.transform:
+            img = self.transform(img)
+        return img, self.labels[idx]
+
+
+def collect_all_samples(dataset_dir):
+    """
+    Load ALL image paths and labels from train/valid/test splits.
+    Returns (paths, labels, class_names) with guaranteed consistency.
+    """
+    # Use train folder to establish canonical class ordering
+    train_ds = datasets.ImageFolder(os.path.join(dataset_dir, "train"))
+    class_to_idx = train_ds.class_to_idx
+    class_names = train_ds.classes
+
+    all_paths = []
+    all_labels = []
+
+    for split in ["train", "valid", "test"]:
+        split_dir = os.path.join(dataset_dir, split)
+        if not os.path.exists(split_dir):
+            continue
+        ds = datasets.ImageFolder(split_dir)
+        # Verify class ordering matches
+        assert ds.classes == class_names, \
+            f"Class mismatch in {split}: {ds.classes} vs {class_names}"
+        for path, label in ds.samples:
+            all_paths.append(path)
+            all_labels.append(label)
+
+    return all_paths, all_labels, class_names
+
+
+# ── Model definitions (matches train_wavecoatnet.py exactly) ──────────────────
 
 def haar_dwt_2d(x):
-    """2D Haar Discrete Wavelet Transform."""
     x_l = (x[:, :, :, 0::2] + x[:, :, :, 1::2]) * 0.5
     x_h = (x[:, :, :, 0::2] - x[:, :, :, 1::2]) * 0.5
     ll = (x_l[:, :, 0::2, :] + x_l[:, :, 1::2, :]) * 0.5
@@ -72,7 +117,6 @@ def haar_dwt_2d(x):
 
 
 class WaveletFrequencyDecomposedCrossAttention(nn.Module):
-    """WG-FDCA: frequency-selective cross-attention via Haar DWT."""
     def __init__(self, dim_low=96, dim_high=192, num_heads=4, dropout=0.1):
         super().__init__()
         self.num_heads = num_heads
@@ -125,7 +169,6 @@ class WaveletFrequencyDecomposedCrossAttention(nn.Module):
 
 
 class PrototypeAnchoredTokenSelection(nn.Module):
-    """PA-DTS: token selection via class prototype affinity + entropy + SE."""
     def __init__(self, dim, num_classes=5, min_keep=0.3, max_keep=0.8, dropout=0.0):
         super().__init__()
         self.dim = dim; self.num_classes = num_classes
@@ -149,14 +192,13 @@ class PrototypeAnchoredTokenSelection(nn.Module):
         imp = F.softmax(w[0]*_zn(aff) + w[1]*_zn(ent) + w[2]*_zn(ch), -1)
         g = self.keep_predictor(torch.cat([x.mean(1), torch.stack([imp.mean(1), imp.std(1), imp.max(1).values], -1)], -1)).squeeze(-1)
         g = self.min_keep + g * (self.max_keep - self.min_keep)
-        # Use per-batch mean keep ratio (not just index 0)
-        k = torch.clamp((g.mean()*N).long(), min=max(1, int(self.min_keep*N)), max=int(self.max_keep*N)).item()
+        k = torch.clamp((g*N).long(), min=max(1, int(self.min_keep*N)), max=int(self.max_keep*N))[0].item()
         _, idx = torch.topk(imp, k, dim=1)
         bi = torch.arange(B, device=x.device).unsqueeze(1).expand(-1, k)
         return x[bi, idx] * (1 + imp[bi, idx].unsqueeze(-1)), imp
 
     @torch.no_grad()
-    def update_prototypes(self, embeddings, labels, momentum=0.99):
+    def update_prototypes(self, embeddings, labels, momentum=0.999):
         for c in range(self.num_classes):
             m = labels == c
             if m.sum() > 0:
@@ -164,7 +206,6 @@ class PrototypeAnchoredTokenSelection(nn.Module):
 
 
 class SupervisedContrastiveTokenLoss(nn.Module):
-    """SCTR: SupCon on mean-pooled token embeddings."""
     def __init__(self, embed_dim, proj_dim=128, temperature=0.07):
         super().__init__()
         self.temperature = temperature
@@ -186,7 +227,6 @@ class SupervisedContrastiveTokenLoss(nn.Module):
 
 
 class WaveCoAtNet(nn.Module):
-    """WaveCoAtNet with WG-FDCA + PA-DTS + SCTR."""
     def __init__(self, num_classes=5, vit_blocks=2, dropout=0.2):
         super().__init__()
         cnn = create_model('convnext_tiny', pretrained=True, num_classes=0)
@@ -279,45 +319,6 @@ def bootstrap_ci(y_true, y_pred, metric_fn, n_boot=2000, alpha=0.05):
     return np.percentile(scores, 100 * alpha / 2), np.percentile(scores, 100 * (1 - alpha / 2))
 
 
-# ── Merge dataset splits into one folder ─────────────────────────────────────
-def merge_splits_to_single_folder(dataset_dir):
-    """
-    Merge train/valid/test into a single 'all/' folder for proper CV.
-    Returns path to the merged folder.
-    """
-    all_dir = os.path.join(dataset_dir, "all")
-    if os.path.exists(all_dir):
-        # Already merged from a previous run
-        count = sum(len(files) for _, _, files in os.walk(all_dir))
-        if count > 0:
-            print(f"  Using existing merged folder: {all_dir} ({count} files)")
-            return all_dir
-
-    os.makedirs(all_dir, exist_ok=True)
-    total_copied = 0
-
-    for split in ["train", "valid", "test"]:
-        split_dir = os.path.join(dataset_dir, split)
-        if not os.path.exists(split_dir):
-            continue
-        for class_name in os.listdir(split_dir):
-            src_class = os.path.join(split_dir, class_name)
-            if not os.path.isdir(src_class):
-                continue
-            dst_class = os.path.join(all_dir, class_name)
-            os.makedirs(dst_class, exist_ok=True)
-            for fname in os.listdir(src_class):
-                src_file = os.path.join(src_class, fname)
-                # Prefix with split name to avoid filename collisions
-                dst_file = os.path.join(dst_class, f"{split}_{fname}")
-                if not os.path.exists(dst_file):
-                    shutil.copy2(src_file, dst_file)
-                    total_copied += 1
-
-    print(f"  Merged {total_copied} files into {all_dir}")
-    return all_dir
-
-
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     from roboflow import Roboflow
@@ -330,15 +331,24 @@ def main():
     validation_path = os.path.join(DATASET_DIR, "validation")
     if not os.path.exists(valid_path) and os.path.exists(validation_path):
         os.rename(validation_path, valid_path)
-        print("  Renamed 'validation' -> 'valid'")
 
     # ──────────────────────────────────────────────────────────────────────
-    # KEY FIX: Merge all splits into one folder, then do proper k-fold
+    # Collect ALL image paths + labels from train/valid/test
+    # No folder merging, no copying. Direct path references.
     # ──────────────────────────────────────────────────────────────────────
-    print("\nMerging dataset splits for proper cross-validation...")
-    all_dir = merge_splits_to_single_folder(DATASET_DIR)
+    all_paths, all_labels, class_names = collect_all_samples(DATASET_DIR)
+    all_labels = np.array(all_labels)
+    num_classes = len(class_names)
 
-    # Transforms
+    print(f"Total samples: {len(all_paths)} | Classes: {class_names}")
+    print(f"Label distribution: {np.bincount(all_labels)}")
+
+    # Verify data integrity: check a few samples
+    print("\n--- Data Integrity Check ---")
+    for i in [0, len(all_paths)//4, len(all_paths)//2, 3*len(all_paths)//4, len(all_paths)-1]:
+        print(f"  [{i}] label={all_labels[i]} ({class_names[all_labels[i]]}) path=.../{os.path.basename(all_paths[i])}")
+
+    # Transforms (same as ablation)
     train_aug = transforms.Compose([
         transforms.RandomResizedCrop(TARGET_SIZE, scale=(0.8, 1.0)),
         transforms.RandomHorizontalFlip(), transforms.RandomRotation(15),
@@ -349,49 +359,47 @@ def main():
         transforms.Resize(TARGET_SIZE), transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
 
-    # Load ALL images into a single dataset (no augmentation -- we apply per-subset)
-    full_dataset = datasets.ImageFolder(all_dir, transform=val_transform)
-    all_targets = np.array(full_dataset.targets)
-    class_names = full_dataset.classes
-    num_classes = len(class_names)
-    print(f"Total samples: {len(full_dataset)} | Classes: {class_names}")
-
-    # Also create an augmented version (same folder, different transform)
-    aug_dataset = datasets.ImageFolder(all_dir, transform=train_aug)
-
     skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=RANDOM_SEED)
 
     fold_results = []
     all_y_true, all_y_pred = [], []
 
-    for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.arange(len(full_dataset)), all_targets)):
+    for fold, (train_val_idx, test_idx) in enumerate(skf.split(np.arange(len(all_paths)), all_labels)):
         print(f"\n{'='*60}")
         print(f"  FOLD {fold + 1}/{N_FOLDS}")
         print(f"{'='*60}")
 
-        # Split train_val into train (90%) and val (10%) for model selection
-        train_val_targets = all_targets[train_val_idx]
-        n_val = max(1, len(train_val_idx) // 9)  # ~10% for validation
-        rng = np.random.default_rng(RANDOM_SEED + fold)
-        shuffled = rng.permutation(len(train_val_idx))
-        val_local_idx = shuffled[:n_val]
-        train_local_idx = shuffled[n_val:]
+        # Stratified split of train_val into train (90%) and val (10%)
+        from sklearn.model_selection import StratifiedShuffleSplit
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=RANDOM_SEED + fold)
+        train_local, val_local = next(sss.split(train_val_idx, all_labels[train_val_idx]))
+        train_idx = train_val_idx[train_local]
+        val_idx = train_val_idx[val_local]
 
-        train_idx = train_val_idx[train_local_idx]
-        val_idx = train_val_idx[val_local_idx]
+        # Build datasets with explicit paths and labels
+        train_paths = [all_paths[i] for i in train_idx]
+        train_labels = [int(all_labels[i]) for i in train_idx]
+        val_paths = [all_paths[i] for i in val_idx]
+        val_labels = [int(all_labels[i]) for i in val_idx]
+        test_paths = [all_paths[i] for i in test_idx]
+        test_labels = [int(all_labels[i]) for i in test_idx]
 
-        print(f"  Train: {len(train_idx)} | Val: {len(val_idx)} | Test: {len(test_idx)}")
+        fold_train_ds = PathDataset(train_paths, train_labels, train_aug)
+        fold_val_ds   = PathDataset(val_paths,   val_labels,   val_transform)
+        fold_test_ds  = PathDataset(test_paths,  test_labels,  val_transform)
 
-        # Create subsets -- train uses augmented dataset, val/test use clean
-        fold_train_ds = Subset(aug_dataset, train_idx)
-        fold_val_ds   = Subset(full_dataset, val_idx)
-        fold_test_ds  = Subset(full_dataset, test_idx)
+        # Verify stratification
+        train_dist = np.bincount(train_labels, minlength=num_classes)
+        val_dist   = np.bincount(val_labels,   minlength=num_classes)
+        test_dist  = np.bincount(test_labels,  minlength=num_classes)
+        print(f"  Train: {len(train_labels)} | Val: {len(val_labels)} | Test: {len(test_labels)}")
+        print(f"  Train dist: {train_dist}")
+        print(f"  Val dist:   {val_dist}")
+        print(f"  Test dist:  {test_dist}")
 
-        # Verify label integrity
-        sample_train_labels = [all_targets[i] for i in train_idx[:5]]
-        sample_test_labels = [all_targets[i] for i in test_idx[:5]]
-        print(f"  Train label sample: {sample_train_labels}")
-        print(f"  Test label sample:  {sample_test_labels}")
+        # Verify one image-label pair
+        img_check, lbl_check = fold_train_ds[0]
+        print(f"  Verify: train[0] shape={img_check.shape}, label={lbl_check} ({class_names[lbl_check]})")
 
         num_workers = 0 if os.name == 'nt' else 2
         g = torch.Generator(); g.manual_seed(RANDOM_SEED + fold)
@@ -401,17 +409,15 @@ def main():
         fold_test_loader  = DataLoader(fold_test_ds,  batch_size=BATCH_SIZE, shuffle=False, num_workers=num_workers)
 
         # Class weights from fold training labels
-        fold_train_labels = all_targets[train_idx]
-        counts = np.bincount(fold_train_labels, minlength=num_classes)
+        counts = np.bincount(train_labels, minlength=num_classes)
         cw = torch.tensor(
-            [len(fold_train_labels) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float).to(DEVICE)
+            [len(train_labels) / (c * num_classes + 1e-6) for c in counts], dtype=torch.float).to(DEVICE)
 
         model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
         criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
         optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
-        # ── KEY FIX: Select best model by VALIDATION accuracy ──
         best_val_acc = 0.0
         best_state = None
 
@@ -419,7 +425,6 @@ def main():
             tr_loss, tr_acc = train_one_epoch(model, fold_train_loader, criterion, optimizer)
             scheduler.step()
 
-            # Evaluate on validation set every epoch for model selection
             _, val_yt, val_yp = eval_loader(model, fold_val_loader, criterion)
             val_acc = accuracy_score(val_yt, val_yp)
 
@@ -432,7 +437,6 @@ def main():
 
         print(f"  Best Val Acc: {best_val_acc:.4f}")
 
-        # Load best checkpoint and evaluate on held-out test fold
         model.load_state_dict({k: v.to(DEVICE) for k, v in best_state.items()})
         _, y_true_fold, y_pred_fold = eval_loader(model, fold_test_loader, criterion)
 
