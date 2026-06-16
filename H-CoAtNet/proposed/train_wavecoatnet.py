@@ -70,7 +70,8 @@ LR_HEAD = 1e-4              # higher LR for novel modules + classifier (matches 
 WEIGHT_DECAY = 0.01
 DROPOUT = 0.2
 SCTR_WEIGHT = 0.1           # weight for contrastive loss term
-PROTO_MOMENTUM = 0.999      # EMA momentum for prototype updates
+PROTO_MOMENTUM = 0.999      # EMA momentum for stable prototype tracking
+PROTO_WARMUP_EPOCHS = 5     # epochs with fast prototype adaptation (momentum=0.9)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -535,6 +536,18 @@ class WaveCoAtNet(nn.Module):
             embed_dim=final_embed_dim, proj_dim=128, temperature=0.07
         )
 
+        # Novel Module 4: Prototype-Guided Attention Pooling (PGAP)
+        # Instead of mean-pooling selected tokens, PGAP weights each token
+        # by its diagnostic relevance — cosine affinity to the nearest class
+        # prototype. Tokens that strongly resemble a disease archetype
+        # contribute more to the final representation, sharpening the
+        # classifier's focus on discriminative evidence.
+        self.pgap_proj = nn.Linear(final_embed_dim, final_embed_dim)
+        self.pgap_norm = nn.LayerNorm(final_embed_dim)
+
+        # Store architecture config
+        self.num_vit_blocks = vit_blocks
+
         # Classification head
         self.classifier = nn.Sequential(
             nn.LayerNorm(final_embed_dim),
@@ -577,8 +590,18 @@ class WaveCoAtNet(nn.Module):
         # PA-DTS: prototype-anchored token selection
         selected, _ = self.pa_dts(x)  # (B, K, 768)
 
-        # Mean pool over selected tokens
-        embeddings = selected.mean(dim=1)  # (B, 768)
+        # PGAP: Prototype-Guided Attention Pooling
+        # Weight selected tokens by their diagnostic relevance (affinity
+        # to the nearest class prototype). This replaces naive mean-pooling
+        # with a learned, disease-aware aggregation.
+        pgap_tokens = self.pgap_norm(selected)
+        pgap_queries = self.pgap_proj(pgap_tokens)                       # (B, K, 768)
+        proto_normed = F.normalize(self.pa_dts.prototypes.detach(), dim=-1)
+        query_normed = F.normalize(pgap_queries, dim=-1)
+        proto_affinity = query_normed @ proto_normed.T                   # (B, K, num_classes)
+        diag_relevance = proto_affinity.max(dim=-1).values               # (B, K)
+        attn_weights = F.softmax(diag_relevance, dim=-1).unsqueeze(-1)   # (B, K, 1)
+        embeddings = (selected * attn_weights).sum(dim=1)                # (B, 768)
 
         logits = self.classifier(embeddings)
 
@@ -590,11 +613,16 @@ class WaveCoAtNet(nn.Module):
 # ===========================
 # Training & Evaluation Utilities
 # ===========================
-def train_epoch(model, loader, criterion, optimizer, sctr_weight=SCTR_WEIGHT):
+def train_epoch(model, loader, criterion, optimizer, epoch=0, sctr_weight=SCTR_WEIGHT):
     """Train one epoch with combined CE + SCTR loss and prototype updates."""
     model.train()
     total_loss, total_ce, total_sctr = 0.0, 0.0, 0.0
     all_preds, all_targets = [], []
+
+    # Prototype warmup: use lower momentum early so prototypes converge
+    # quickly to meaningful class centroids, then switch to high momentum
+    # for stable tracking. This is part of the PA-DTS module design.
+    proto_mom = 0.9 if epoch < PROTO_WARMUP_EPOCHS else PROTO_MOMENTUM
 
     for images, targets in tqdm(loader, desc="Training", leave=False):
         images, targets = images.to(DEVICE), targets.to(DEVICE)
@@ -610,10 +638,8 @@ def train_epoch(model, loader, criterion, optimizer, sctr_weight=SCTR_WEIGHT):
 
         # EMA prototype update BEFORE weight mutation so prototypes
         # remain synchronised with the embedding space that produced them.
-        # (embeddings were computed with the current weights; updating
-        # prototypes after optimizer.step() would use stale representations.)
         model.pa_dts.update_prototypes(embeddings.detach(), targets,
-                                        momentum=PROTO_MOMENTUM)
+                                        momentum=proto_mom)
 
         optimizer.step()
 
@@ -722,7 +748,7 @@ def main():
     ).to(DEVICE)
     print("Class weights:", class_weights.cpu().numpy().round(4))
 
-    model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
+    model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT, vit_blocks=4).to(DEVICE)
     criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
 
     # Layer-wise LR: pretrained backbone gets lower LR, novel modules get higher LR
@@ -760,7 +786,7 @@ def main():
         print(f"\n--- Epoch {epoch + 1}/{EPOCHS} ---")
         t0 = time.time()
 
-        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer)
+        train_loss, train_acc = train_epoch(model, train_loader, criterion, optimizer, epoch=epoch)
         val_loss,  val_acc,  _, _ = evaluate(model, validation_loader, criterion, "Validating")
         test_loss, test_acc, _, _ = evaluate(model, test_loader,       criterion, "Testing")
         scheduler.step()
@@ -814,13 +840,14 @@ def main():
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("\n--- Hyperparameter Summary ---")
-    print(f"  Architecture     : WaveCoAtNet (ConvNeXt-Tiny + WG-FDCA + {2} ViT + PA-DTS + SCTR)")
+    print(f"  Architecture     : WaveCoAtNet (ConvNeXt-Tiny + WG-FDCA + {model.num_vit_blocks} ViT + PA-DTS + PGAP + SCTR)")
     print(f"  Backbone         : convnext_tiny (pretrained=True, ImageNet-1k)")
     print(f"  Input resolution : {TARGET_SIZE[0]}x{TARGET_SIZE[1]}")
     print(f"  Batch size       : {BATCH_SIZE}")
     print(f"  Epochs           : {EPOCHS}")
     print(f"  Optimiser        : AdamW (backbone_lr={LR_BACKBONE}, head_lr={LR_HEAD}, weight_decay={WEIGHT_DECAY})")
     print(f"  LR schedule      : CosineAnnealingLR (T_max={EPOCHS})")
+    print(f"  Proto warmup     : {PROTO_WARMUP_EPOCHS} epochs at momentum=0.9, then {PROTO_MOMENTUM}")
     print(f"  Loss             : CE(label_smoothing=0.1, class_weights) + {SCTR_WEIGHT}*SupCon(T=0.07)")
     print(f"  Dropout          : {DROPOUT}")
     print(f"  Prototype EMA    : momentum={PROTO_MOMENTUM}")

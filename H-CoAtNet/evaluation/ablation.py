@@ -4,8 +4,11 @@ WaveCoAtNet: Ablation Study
 Trains eight model conditions to isolate the contribution of each novel
 module. All conditions use identical hyperparameters, seed, and data split.
 
+    python evaluation/ablation.py --condition full
+
 Conditions:
-  full             -- WaveCoAtNet (all: WG-FDCA + ViT + PA-DTS + SCTR)
+  full             -- WaveCoAtNet (all: WG-FDCA + 4 ViT + PA-DTS + PGAP + SCTR)
+  no_pgap          -- Full but with mean-pooling instead of PGAP
   no_wgfdca        -- Plain cross-attention instead of wavelet-decomposed
   no_transformer   -- CNN + PA-DTS only (no ViT blocks, no cross-attention)
   no_padts         -- WG-FDCA + ViT, but uses global avg pool (no token selection)
@@ -13,9 +16,6 @@ Conditions:
   fixed_pruning    -- WG-FDCA + ViT + old SE with fixed 75/50% pruning
   no_prototypes    -- WG-FDCA + ViT + SE-based selection (no prototypes)
   baseline         -- Plain ConvNeXt-Tiny fine-tuned
-
-Usage:
-    python evaluation/ablation.py --condition full
 """
 
 import os
@@ -51,13 +51,21 @@ torch.backends.cudnn.deterministic = True
 TARGET_SIZE  = (224, 224)
 BATCH_SIZE   = 24
 EPOCHS       = 30
-LR           = 5e-5
+LR_BACKBONE  = 1e-5       # lower LR for pretrained backbone (matches baselines)
+LR_HEAD      = 1e-4       # higher LR for novel modules (matches baselines)
 WEIGHT_DECAY = 0.01
 DROPOUT      = 0.2
 SCTR_WEIGHT  = 0.1
 PROTO_MOM    = 0.999
+PROTO_WARMUP = 5          # epochs with fast prototype adaptation (momentum=0.9)
+VIT_BLOCKS   = 4          # number of ViT blocks in full model
 DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_CSV  = "ablation_results.csv"
+
+VALID_CONDITIONS = (
+    'full', 'no_pgap', 'no_wgfdca', 'no_transformer',
+    'no_padts', 'no_sctr', 'fixed_pruning', 'no_prototypes', 'baseline'
+)
 
 
 # ── Utility: Haar DWT ────────────────────────────────────────────────────────
@@ -287,7 +295,7 @@ class SupervisedContrastiveTokenLoss(nn.Module):
 
 
 # ── Ablation model factory ───────────────────────────────────────────────────
-VALID_CONDITIONS = ('full', 'no_wgfdca', 'no_transformer', 'no_padts',
+VALID_CONDITIONS = ('full', 'no_pgap', 'no_wgfdca', 'no_transformer', 'no_padts',
                     'no_sctr', 'fixed_pruning', 'no_prototypes', 'baseline')
 
 def build_model(condition: str, num_classes: int) -> nn.Module:
@@ -298,6 +306,7 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             super().__init__()
             self.condition = condition
             self.use_sctr = condition not in ('fixed_pruning', 'baseline', 'no_sctr')
+            self.use_pgap = condition in ('full', 'no_wgfdca', 'no_sctr')  # PGAP for conditions that use PA-DTS
 
             if condition == 'baseline':
                 self.model = create_model('convnext_tiny', pretrained=True, num_classes=num_classes)
@@ -313,7 +322,7 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             has_ca = condition != 'no_transformer'
             has_vit = condition != 'no_transformer'
             use_wavelet = condition not in ('no_wgfdca',)
-            use_padts = condition in ('full', 'no_wgfdca', 'no_sctr')
+            use_padts = condition in ('full', 'no_pgap', 'no_wgfdca', 'no_sctr')
             use_se_selection = condition == 'no_prototypes'
             use_fixed = condition == 'fixed_pruning'
 
@@ -324,14 +333,15 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
                 else:
                     self.cross_attn = PlainCrossAttention(96, 192, 4, DROPOUT)
 
-            # ViT blocks
+            # ViT blocks (with stochastic depth for regularisation)
             if has_vit:
                 vit_dim = 192
                 self.pos_embed = nn.Parameter(torch.zeros(1, 28*28, vit_dim))
                 nn.init.trunc_normal_(self.pos_embed, std=0.02)
                 self.vit_blocks = nn.ModuleList([
-                    Block(dim=vit_dim, num_heads=6, proj_drop=DROPOUT, attn_drop=DROPOUT*0.5)
-                    for _ in range(2)])
+                    Block(dim=vit_dim, num_heads=6, proj_drop=DROPOUT, attn_drop=DROPOUT*0.5,
+                          drop_path=0.1 * (i + 1) / VIT_BLOCKS)
+                    for i in range(VIT_BLOCKS)])
 
             # Token selection
             final_dim = 768
@@ -342,6 +352,11 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             elif use_fixed:
                 self.selection_sizes = [int(49*0.75), int(49*0.50)]
                 self.hse_blocks = nn.ModuleList([FixedSEPruning(final_dim, 16, DROPOUT*0.25) for _ in self.selection_sizes])
+
+            # PGAP: Prototype-Guided Attention Pooling (for full + conditions using PA-DTS)
+            if self.use_pgap:
+                self.pgap_proj = nn.Linear(final_dim, final_dim)
+                self.pgap_norm = nn.LayerNorm(final_dim)
 
             # SCTR
             if self.use_sctr:
@@ -358,7 +373,7 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
 
             has_ca = self.condition != 'no_transformer'
             has_vit = self.condition != 'no_transformer'
-            use_padts = self.condition in ('full', 'no_wgfdca', 'no_sctr')
+            use_padts = self.condition in ('full', 'no_pgap', 'no_wgfdca', 'no_sctr')
             use_se_sel = self.condition == 'no_prototypes'
             use_fixed = self.condition == 'fixed_pruning'
             use_gap = self.condition == 'no_padts'
@@ -383,7 +398,18 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
 
             if use_padts or use_se_sel:
                 selected, _ = self.token_selector(x)
-                embeddings = selected.mean(dim=1)
+                if self.use_pgap:
+                    # PGAP: Prototype-Guided Attention Pooling
+                    pgap_tokens = self.pgap_norm(selected)
+                    pgap_queries = self.pgap_proj(pgap_tokens)
+                    proto_normed = F.normalize(self.token_selector.prototypes.detach(), dim=-1)
+                    query_normed = F.normalize(pgap_queries, dim=-1)
+                    proto_aff = query_normed @ proto_normed.T
+                    diag_rel = proto_aff.max(dim=-1).values
+                    attn_w = F.softmax(diag_rel, dim=-1).unsqueeze(-1)
+                    embeddings = (selected * attn_w).sum(dim=1)
+                else:
+                    embeddings = selected.mean(dim=1)
             elif use_fixed:
                 current = x
                 for hse, k in zip(self.hse_blocks, self.selection_sizes):
@@ -402,9 +428,11 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
 
 
 # ── Training & evaluation ────────────────────────────────────────────────────
-def train_epoch(model, loader, criterion, optimizer, use_sctr=True, sctr_weight=SCTR_WEIGHT):
+def train_epoch(model, loader, criterion, optimizer, use_sctr=True, epoch=0, sctr_weight=SCTR_WEIGHT):
     model.train()
     total_loss, preds, targets = 0.0, [], []
+    # Prototype warmup: lower momentum early for faster convergence
+    proto_mom = 0.9 if epoch < PROTO_WARMUP else PROTO_MOM
     for imgs, tgts in tqdm(loader, desc="  train", leave=False):
         imgs, tgts = imgs.to(DEVICE), tgts.to(DEVICE)
         optimizer.zero_grad()
@@ -418,7 +446,7 @@ def train_epoch(model, loader, criterion, optimizer, use_sctr=True, sctr_weight=
         loss.backward()
         # Prototype EMA update before weight mutation
         if hasattr(model, 'token_selector') and hasattr(model.token_selector, 'update_prototypes'):
-            model.token_selector.update_prototypes(emb.detach(), tgts, PROTO_MOM)
+            model.token_selector.update_prototypes(emb.detach(), tgts, proto_mom)
         optimizer.step()
         total_loss += loss.item()
         preds.extend(logits.argmax(1).cpu().numpy())
@@ -455,6 +483,7 @@ def main():
 
     labels = {
         'full':           'WaveCoAtNet (Full)',
+        'no_pgap':        'w/o PGAP (Mean Pool)',
         'no_wgfdca':      'w/o WG-FDCA (Plain CA)',
         'no_transformer': 'w/o Transformer',
         'no_padts':       'w/o PA-DTS (GAP)',
@@ -529,7 +558,21 @@ def main():
 
         model = build_model(condition, num_classes)
         criterion = nn.CrossEntropyLoss(weight=cw, label_smoothing=0.1)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+
+        # Layer-wise LR: backbone gets lower LR, novel modules get higher LR
+        # Matches the training protocol used by all pretrained baselines.
+        backbone_params, novel_params = [], []
+        for name, p in model.named_parameters():
+            if not p.requires_grad:
+                continue
+            if any(s in name for s in ['cnn_stem', 'cnn_stage1', 'cnn_stage2', 'cnn_stage3', 'cnn_stage4', 'model.']):
+                backbone_params.append(p)
+            else:
+                novel_params.append(p)
+        optimizer = torch.optim.AdamW([
+            {'params': backbone_params, 'lr': LR_BACKBONE},
+            {'params': novel_params,    'lr': LR_HEAD},
+        ], weight_decay=WEIGHT_DECAY)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
         use_sctr = hasattr(model, 'use_sctr') and model.use_sctr
@@ -538,7 +581,7 @@ def main():
         t_start = time.time()
 
         for epoch in range(EPOCHS):
-            tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, use_sctr=use_sctr)
+            tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, use_sctr=use_sctr, epoch=epoch)
             vl_loss, vl_acc, _, _ = evaluate(model, val_loader, criterion)
             scheduler.step()
             if epoch % 5 == 0 or epoch == EPOCHS - 1:
