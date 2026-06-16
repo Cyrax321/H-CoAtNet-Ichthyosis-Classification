@@ -82,7 +82,8 @@ LR_HEAD = 1e-4              # higher LR for novel modules + classifier (matches 
 WEIGHT_DECAY = 0.01
 DROPOUT = 0.2
 SCTR_WEIGHT = 0.1           # weight for contrastive loss term
-PROTO_MOMENTUM = 0.999      # EMA momentum for stable prototype tracking
+PROTO_MOMENTUM = 0.99       # EMA momentum for prototype tracking (0.99 for faster adaptation)
+ORTHO_WEIGHT = 0.05         # weight for cross-prototype orthogonality loss
 PROTO_WARMUP_EPOCHS = 5     # epochs with fast prototype adaptation (momentum=0.9)
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -397,7 +398,7 @@ class PrototypeAnchoredTokenSelection(nn.Module):
 
     @torch.no_grad()
     def update_prototypes(self, embeddings: torch.Tensor, labels: torch.Tensor,
-                          momentum: float = 0.999):
+                          momentum: float = 0.99):
         """
         Update class prototypes via exponential moving average.
 
@@ -412,6 +413,25 @@ class PrototypeAnchoredTokenSelection(nn.Module):
                 class_mean = embeddings[mask].mean(dim=0)
                 self.prototypes[c] = (momentum * self.prototypes[c] +
                                       (1.0 - momentum) * class_mean)
+
+    def prototype_orthogonality_loss(self) -> torch.Tensor:
+        """
+        Cross-Prototype Orthogonality Regularization.
+
+        Pushes class prototypes apart by penalising cosine similarity
+        between different-class prototype pairs.  Directly combats
+        prototype collapse between visually similar subtypes
+        (e.g. Lamellar ↔ Netherton) and improves inter-class
+        discriminability in the embedding space.
+
+        Returns:
+            loss: scalar -- mean squared off-diagonal cosine similarity
+        """
+        p_norm = F.normalize(self.prototypes, dim=-1)       # (K, C)
+        sim = p_norm @ p_norm.T                              # (K, K)
+        eye = torch.eye(self.num_classes, device=sim.device)
+        off_diag = sim - eye                                 # zero on diagonal
+        return (off_diag ** 2).mean()
 
 
 # ===========================
@@ -445,14 +465,16 @@ class SupervisedContrastiveTokenLoss(nn.Module):
             nn.Linear(embed_dim, proj_dim),
         )
 
-    def forward(self, embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    def forward(self, embeddings: torch.Tensor, labels: torch.Tensor,
+                prototypes: torch.Tensor = None) -> torch.Tensor:
         """
         Args:
             embeddings: (B, D) -- mean-pooled token representations
             labels:     (B,)   -- ground-truth class labels
+            prototypes: (K, D) -- class prototypes from PA-DTS (optional)
 
         Returns:
-            loss: scalar -- supervised contrastive loss
+            loss: scalar -- supervised contrastive loss + prototype alignment
         """
         B = embeddings.shape[0]
         if B < 2:
@@ -471,20 +493,35 @@ class SupervisedContrastiveTokenLoss(nn.Module):
         # Check that at least some samples have positive pairs
         has_pos = positives.float().sum(dim=1) > 0
         if has_pos.sum() == 0:
-            return torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+            supcon_loss = torch.tensor(0.0, device=embeddings.device, requires_grad=True)
+        else:
+            # Numerical stability
+            sim_max = sim.max(dim=1, keepdim=True).values.detach()
+            sim = sim - sim_max
 
-        # Numerical stability
-        sim_max = sim.max(dim=1, keepdim=True).values.detach()
-        sim = sim - sim_max
+            exp_sim = torch.exp(sim) * self_mask.float()
+            log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True) + 1e-8)
 
-        exp_sim = torch.exp(sim) * self_mask.float()
-        log_prob = sim - torch.log(exp_sim.sum(dim=1, keepdim=True) + 1e-8)
+            # Mean log-prob over positive pairs per anchor
+            pos_count = torch.clamp(positives.float().sum(dim=1), min=1.0)
+            loss_per_sample = -(positives.float() * log_prob).sum(dim=1) / pos_count
+            supcon_loss = loss_per_sample[has_pos].mean()
 
-        # Mean log-prob over positive pairs per anchor
-        pos_count = torch.clamp(positives.float().sum(dim=1), min=1.0)
-        loss_per_sample = -(positives.float() * log_prob).sum(dim=1) / pos_count
+        # Prototype-Anchored Alignment (PAA):
+        # Couples contrastive learning with the prototype system.
+        # Each embedding is classified against class prototypes via
+        # cross-entropy, which simultaneously pulls embeddings toward
+        # their own prototype and repels from others. This creates a
+        # bidirectional feedback: prototypes guide SCTR, and SCTR
+        # improves embeddings that update prototypes.
+        if prototypes is not None:
+            p_norm = F.normalize(prototypes.detach(), dim=-1)       # (K, D)
+            e_norm = F.normalize(embeddings, dim=-1)                # (B, D)
+            proto_sim = e_norm @ p_norm.T / self.temperature        # (B, K)
+            alignment_loss = F.cross_entropy(proto_sim, labels)
+            return supcon_loss + 0.5 * alignment_loss
 
-        return loss_per_sample[has_pos].mean()
+        return supcon_loss
 
 
 # ===========================
@@ -669,8 +706,9 @@ def train_epoch(model, loader, criterion, optimizer, epoch=0, sctr_weight=SCTR_W
         logits, embeddings = model(images, return_embeddings=True)
 
         ce_loss = criterion(logits, targets)
-        sctr_loss = model.sctr(embeddings, targets)
-        loss = ce_loss + sctr_weight * sctr_loss
+        sctr_loss = model.sctr(embeddings, targets, model.pa_dts.prototypes)
+        ortho_loss = model.pa_dts.prototype_orthogonality_loss()
+        loss = ce_loss + sctr_weight * sctr_loss + ORTHO_WEIGHT * ortho_loss
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
