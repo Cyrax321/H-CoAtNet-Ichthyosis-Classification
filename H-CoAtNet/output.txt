@@ -1,0 +1,2529 @@
+complete training output : /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+
+============================================================
+  Training: EfficientNet-B0 (Pretrained)
+============================================================
+loading Roboflow workspace...
+loading Roboflow project...
+Classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+model.safetensors: 100% 21.4M/21.4M [00:01<00:00, 17.4MB/s]
+Parameters: 4,013,953
+Epoch  1/30 | Train 0.2878 | Val 0.3896 | Test 0.4557
+  ✓ Best model saved (Val Acc = 0.3896)
+Epoch  2/30 | Train 0.4007 | Val 0.5519 | Test 0.5443
+  ✓ Best model saved (Val Acc = 0.5519)
+Epoch  3/30 | Train 0.4754 | Val 0.6299 | Test 0.5886
+  ✓ Best model saved (Val Acc = 0.6299)
+Epoch  4/30 | Train 0.5387 | Val 0.6429 | Test 0.6646
+  ✓ Best model saved (Val Acc = 0.6429)
+Epoch  5/30 | Train 0.5665 | Val 0.6429 | Test 0.7025
+Epoch  6/30 | Train 0.5733 | Val 0.6818 | Test 0.6899
+  ✓ Best model saved (Val Acc = 0.6818)
+Epoch  7/30 | Train 0.6116 | Val 0.6883 | Test 0.6962
+  ✓ Best model saved (Val Acc = 0.6883)
+Epoch  8/30 | Train 0.6348 | Val 0.6623 | Test 0.7152
+Epoch  9/30 | Train 0.6321 | Val 0.6883 | Test 0.7215
+Epoch 10/30 | Train 0.6412 | Val 0.6883 | Test 0.7278
+Epoch 11/30 | Train 0.6526 | Val 0.7013 | Test 0.7595
+  ✓ Best model saved (Val Acc = 0.7013)
+Epoch 12/30 | Train 0.6644 | Val 0.7143 | Test 0.7342
+  ✓ Best model saved (Val Acc = 0.7143)
+Epoch 13/30 | Train 0.6740 | Val 0.6948 | Test 0.7468
+Epoch 14/30 | Train 0.6730 | Val 0.7078 | Test 0.7405
+Epoch 15/30 | Train 0.7131 | Val 0.6948 | Test 0.7405
+Epoch 16/30 | Train 0.6976 | Val 0.7013 | Test 0.7405
+Epoch 17/30 | Train 0.6922 | Val 0.7078 | Test 0.7785
+Epoch 18/30 | Train 0.7122 | Val 0.7208 | Test 0.7595
+  ✓ Best model saved (Val Acc = 0.7208)
+Epoch 19/30 | Train 0.7049 | Val 0.7013 | Test 0.7658
+Epoch 20/30 | Train 0.7008 | Val 0.6948 | Test 0.7405
+Epoch 21/30 | Train 0.7081 | Val 0.7403 | Test 0.8101
+  ✓ Best model saved (Val Acc = 0.7403)
+Epoch 22/30 | Train 0.7031 | Val 0.7208 | Test 0.7658
+Epoch 23/30 | Train 0.7195 | Val 0.7013 | Test 0.7785
+Epoch 24/30 | Train 0.7122 | Val 0.6948 | Test 0.7785
+Epoch 25/30 | Train 0.7209 | Val 0.7208 | Test 0.7595
+Epoch 26/30 | Train 0.7377 | Val 0.7208 | Test 0.7468
+Epoch 27/30 | Train 0.7026 | Val 0.7078 | Test 0.7911
+Epoch 28/30 | Train 0.7254 | Val 0.7208 | Test 0.7722
+Epoch 29/30 | Train 0.7281 | Val 0.7208 | Test 0.7722
+Epoch 30/30 | Train 0.7104 | Val 0.7013 | Test 0.7658
+
+--- Final Evaluation ---
+Test Accuracy: 81.01%
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9677    0.9375    0.9524        32
+        Healthy skin     0.9333    0.9333    0.9333        45
+Ichthyosis vulgaris      0.9143    0.6957    0.7901        46
+ Lamellar ichthyosis     0.4828    0.6364    0.5490        22
+  Netherton syndrome     0.5556    0.7692    0.6452        13
+
+            accuracy                         0.8101       158
+           macro avg     0.7707    0.7944    0.7740       158
+        weighted avg     0.8409    0.8101    0.8183       158
+
+
+Hyperparameters:
+  backbone LR: 1e-05 | head LR: 0.0001 | WD: 0.01
+  Epochs: 30 | Batch: 24 | Dropout: 0.2 | Seed: 42
+
+============================================================
+  Training: Swin-T (Pretrained)
+============================================================
+loading Roboflow workspace...
+loading Roboflow project...
+Device: cuda | Classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+model.safetensors: 100% 114M/114M [00:02<00:00, 40.3MB/s]
+Model: swin_tiny_patch4_window7_224 (pretrained=True)
+Parameters: 27,523,199
+Epoch  1/30 | Train 0.5642 | Val 0.7597 | Test 0.7785
+  ✓ Best model saved (Val Acc = 0.7597)
+Epoch  2/30 | Train 0.7618 | Val 0.8247 | Test 0.8228
+  ✓ Best model saved (Val Acc = 0.8247)
+Epoch  3/30 | Train 0.8188 | Val 0.8312 | Test 0.8291
+  ✓ Best model saved (Val Acc = 0.8312)
+Epoch  4/30 | Train 0.8730 | Val 0.8442 | Test 0.8481
+  ✓ Best model saved (Val Acc = 0.8442)
+Epoch  5/30 | Train 0.8898 | Val 0.8571 | Test 0.8671
+  ✓ Best model saved (Val Acc = 0.8571)
+Epoch  6/30 | Train 0.9094 | Val 0.8636 | Test 0.8797
+  ✓ Best model saved (Val Acc = 0.8636)
+Epoch  7/30 | Train 0.9194 | Val 0.8701 | Test 0.8671
+  ✓ Best model saved (Val Acc = 0.8701)
+Epoch  8/30 | Train 0.9271 | Val 0.8636 | Test 0.8924
+Epoch  9/30 | Train 0.9303 | Val 0.8571 | Test 0.8924
+Epoch 10/30 | Train 0.9390 | Val 0.8701 | Test 0.8924
+Epoch 11/30 | Train 0.9403 | Val 0.8636 | Test 0.8924
+Epoch 12/30 | Train 0.9617 | Val 0.8701 | Test 0.8861
+Epoch 13/30 | Train 0.9536 | Val 0.8766 | Test 0.8861
+  ✓ Best model saved (Val Acc = 0.8766)
+Epoch 14/30 | Train 0.9577 | Val 0.8636 | Test 0.8924
+Epoch 15/30 | Train 0.9636 | Val 0.8636 | Test 0.8924
+Epoch 16/30 | Train 0.9631 | Val 0.8766 | Test 0.8924
+Epoch 17/30 | Train 0.9677 | Val 0.8701 | Test 0.8987
+Epoch 18/30 | Train 0.9722 | Val 0.8766 | Test 0.8987
+Epoch 19/30 | Train 0.9731 | Val 0.8831 | Test 0.8924
+  ✓ Best model saved (Val Acc = 0.8831)
+Epoch 20/30 | Train 0.9722 | Val 0.8766 | Test 0.8924
+Epoch 21/30 | Train 0.9681 | Val 0.8896 | Test 0.8987
+  ✓ Best model saved (Val Acc = 0.8896)
+Epoch 22/30 | Train 0.9795 | Val 0.8831 | Test 0.8987
+Epoch 23/30 | Train 0.9777 | Val 0.8766 | Test 0.8987
+Epoch 24/30 | Train 0.9781 | Val 0.8766 | Test 0.8987
+Epoch 25/30 | Train 0.9768 | Val 0.8766 | Test 0.8987
+Epoch 26/30 | Train 0.9754 | Val 0.8831 | Test 0.8987
+Epoch 27/30 | Train 0.9754 | Val 0.8831 | Test 0.8987
+Epoch 28/30 | Train 0.9795 | Val 0.8831 | Test 0.8987
+Epoch 29/30 | Train 0.9772 | Val 0.8831 | Test 0.8987
+Epoch 30/30 | Train 0.9795 | Val 0.8831 | Test 0.8987
+
+--- Final Evaluation ---
+Test Accuracy: 89.87%
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9667    0.9062    0.9355        32
+        Healthy skin     0.9565    0.9778    0.9670        45
+Ichthyosis vulgaris      0.9348    0.9348    0.9348        46
+ Lamellar ichthyosis     0.7778    0.6364    0.7000        22
+  Netherton syndrome     0.6667    0.9231    0.7742        13
+
+            accuracy                         0.8987       158
+           macro avg     0.8605    0.8757    0.8623       158
+        weighted avg     0.9035    0.8987    0.8982       158
+
+
+============================================================
+  Training: ViT-B/16 (Pretrained)
+============================================================
+loading Roboflow workspace...
+loading Roboflow project...
+Device: cuda | Classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+model.safetensors: 100% 346M/346M [00:04<00:00, 81.2MB/s]
+Model: vit_base_patch16_224 (pretrained=True, ImageNet-21k→1k)
+Parameters: 85,802,501
+Epoch  1/30 | Train 0.7186 | Val 0.8701 | Test 0.8671
+  ✓ Best model saved (Val Acc = 0.8701)
+Epoch  2/30 | Train 0.9194 | Val 0.8247 | Test 0.8924
+Epoch  3/30 | Train 0.9645 | Val 0.8766 | Test 0.9051
+  ✓ Best model saved (Val Acc = 0.8766)
+Epoch  4/30 | Train 0.9763 | Val 0.9026 | Test 0.8987
+  ✓ Best model saved (Val Acc = 0.9026)
+Epoch  5/30 | Train 0.9891 | Val 0.8896 | Test 0.8861
+Epoch  6/30 | Train 0.9882 | Val 0.8831 | Test 0.9051
+Epoch  7/30 | Train 0.9932 | Val 0.8896 | Test 0.8924
+Epoch  8/30 | Train 0.9923 | Val 0.9026 | Test 0.8987
+Epoch  9/30 | Train 0.9954 | Val 0.8896 | Test 0.8861
+Epoch 10/30 | Train 0.9913 | Val 0.9156 | Test 0.8924
+  ✓ Best model saved (Val Acc = 0.9156)
+Epoch 11/30 | Train 0.9941 | Val 0.9091 | Test 0.8924
+Epoch 12/30 | Train 0.9968 | Val 0.8961 | Test 0.8861
+Epoch 13/30 | Train 0.9954 | Val 0.9091 | Test 0.8987
+Epoch 14/30 | Train 0.9968 | Val 0.9026 | Test 0.9051
+Epoch 15/30 | Train 0.9977 | Val 0.8961 | Test 0.8924
+Epoch 16/30 | Train 0.9959 | Val 0.9091 | Test 0.8924
+Epoch 17/30 | Train 0.9964 | Val 0.9026 | Test 0.9051
+Epoch 18/30 | Train 0.9959 | Val 0.9156 | Test 0.9177
+Epoch 19/30 | Train 0.9973 | Val 0.9026 | Test 0.9114
+Epoch 20/30 | Train 0.9954 | Val 0.8961 | Test 0.9114
+Epoch 21/30 | Train 0.9977 | Val 0.9091 | Test 0.9051
+Epoch 22/30 | Train 0.9968 | Val 0.9091 | Test 0.9114
+Epoch 23/30 | Train 0.9968 | Val 0.9156 | Test 0.9051
+Epoch 24/30 | Train 0.9968 | Val 0.9091 | Test 0.9051
+Epoch 25/30 | Train 0.9973 | Val 0.9091 | Test 0.8987
+Epoch 26/30 | Train 0.9982 | Val 0.9091 | Test 0.8987
+Epoch 27/30 | Train 0.9986 | Val 0.9156 | Test 0.9114
+Epoch 28/30 | Train 0.9991 | Val 0.9091 | Test 0.8987
+Epoch 29/30 | Train 0.9968 | Val 0.9091 | Test 0.9051
+Epoch 30/30 | Train 0.9973 | Val 0.9091 | Test 0.9051
+
+--- Final Evaluation ---
+Test Accuracy: 89.24%
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9667    0.9062    0.9355        32
+        Healthy skin     0.9767    0.9333    0.9545        45
+Ichthyosis vulgaris      0.9783    0.9783    0.9783        46
+ Lamellar ichthyosis     0.7273    0.7273    0.7273        22
+  Netherton syndrome     0.5294    0.6923    0.6000        13
+
+            accuracy                         0.8924       158
+           macro avg     0.8357    0.8475    0.8391       158
+        weighted avg     0.9036    0.8924    0.8968       158
+
+
+============================================================
+  Training: CoAtNet (Pretrained)
+============================================================
+Using device: cuda
+loading Roboflow workspace...
+loading Roboflow project...
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+
+--- Model Summary ---
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+CoAtNet                                                 [24, 5]                   --
+├─ConvNeXt: 1-1                                         [24, 5]                   --
+│    └─Sequential: 2-1                                  [24, 96, 56, 56]          --
+│    │    └─Conv2d: 3-1                                 [24, 96, 56, 56]          4,704
+│    │    └─LayerNorm2d: 3-2                            [24, 96, 56, 56]          192
+│    └─Sequential: 2-2                                  [24, 768, 7, 7]           --
+│    │    └─ConvNeXtStage: 3-3                          [24, 96, 56, 56]          237,888
+│    │    └─ConvNeXtStage: 3-4                          [24, 192, 28, 28]         992,256
+│    │    └─ConvNeXtStage: 3-5                          [24, 384, 14, 14]         11,112,960
+│    │    └─ConvNeXtStage: 3-6                          [24, 768, 7, 7]           15,470,592
+│    └─Identity: 2-3                                    [24, 768, 7, 7]           --
+│    └─NormMlpClassifierHead: 2-4                       [24, 5]                   --
+│    │    └─SelectAdaptivePool2d: 3-7                   [24, 768, 1, 1]           --
+│    │    └─LayerNorm2d: 3-8                            [24, 768, 1, 1]           1,536
+│    │    └─Flatten: 3-9                                [24, 768]                 --
+│    │    └─Identity: 3-10                              [24, 768]                 --
+│    │    └─Dropout: 3-11                               [24, 768]                 --
+│    │    └─Linear: 3-12                                [24, 5]                   3,845
+=========================================================================================================
+Total params: 27,823,973
+Trainable params: 27,823,973
+Non-trainable params: 0
+Total mult-adds (Units.GIGABYTES): 7.72
+=========================================================================================================
+Input size (MB): 14.45
+Forward/backward pass size (MB): 3150.40
+Params size (MB): 111.27
+Estimated Total Size (MB): 3276.12
+=========================================================================================================
+
+--- Epoch 1/30 ---
+Training: 100% 92/92 [00:47<00:00,  1.94it/s]
+Validating: 100% 7/7 [00:03<00:00,  2.02it/s]
+Testing: 100% 7/7 [00:05<00:00,  1.36it/s]
+Epoch 1: Train Acc: 0.7673 | Val Acc: 0.8571 | Test Acc: 0.8924
+Losses: Train: 0.6633, Val: 0.4350, Test: 0.3029
+New best model saved with Val Acc: 0.8571
+
+--- Epoch 2/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.89it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.76it/s]
+Epoch 2: Train Acc: 0.9390 | Val Acc: 0.8247 | Test Acc: 0.8987
+Losses: Train: 0.1785, Val: 0.5869, Test: 0.3343
+
+--- Epoch 3/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.73it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.96it/s]
+Epoch 3: Train Acc: 0.9540 | Val Acc: 0.8636 | Test Acc: 0.8797
+Losses: Train: 0.1368, Val: 0.5310, Test: 0.4145
+New best model saved with Val Acc: 0.8636
+
+--- Epoch 4/30 ---
+Training: 100% 92/92 [00:43<00:00,  2.10it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.46it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.35it/s]
+Epoch 4: Train Acc: 0.9909 | Val Acc: 0.8961 | Test Acc: 0.8924
+Losses: Train: 0.0240, Val: 0.6779, Test: 0.6002
+New best model saved with Val Acc: 0.8961
+
+--- Epoch 5/30 ---
+Training: 100% 92/92 [00:42<00:00,  2.15it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.39it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.44it/s]
+Epoch 5: Train Acc: 0.9804 | Val Acc: 0.8636 | Test Acc: 0.9051
+Losses: Train: 0.0600, Val: 0.6913, Test: 0.4138
+
+--- Epoch 6/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.74it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.48it/s]
+Epoch 6: Train Acc: 0.9891 | Val Acc: 0.9091 | Test Acc: 0.8987
+Losses: Train: 0.0329, Val: 0.7888, Test: 0.4764
+New best model saved with Val Acc: 0.9091
+
+--- Epoch 7/30 ---
+Training: 100% 92/92 [00:42<00:00,  2.15it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.60it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.48it/s]
+Epoch 7: Train Acc: 0.9964 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0105, Val: 0.8271, Test: 0.4920
+
+--- Epoch 8/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.49it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.57it/s]
+Epoch 8: Train Acc: 0.9918 | Val Acc: 0.8636 | Test Acc: 0.8987
+Losses: Train: 0.0239, Val: 0.7352, Test: 0.3961
+
+--- Epoch 9/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.50it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.40it/s]
+Epoch 9: Train Acc: 0.9854 | Val Acc: 0.8766 | Test Acc: 0.9051
+Losses: Train: 0.0445, Val: 0.7969, Test: 0.4002
+
+--- Epoch 10/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.43it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.46it/s]
+Epoch 10: Train Acc: 0.9936 | Val Acc: 0.8701 | Test Acc: 0.8924
+Losses: Train: 0.0176, Val: 0.8455, Test: 0.5981
+
+--- Epoch 11/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.29it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.48it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.37it/s]
+Epoch 11: Train Acc: 0.9968 | Val Acc: 0.8831 | Test Acc: 0.8924
+Losses: Train: 0.0093, Val: 0.7944, Test: 0.4699
+
+--- Epoch 12/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.07it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.35it/s]
+Epoch 12: Train Acc: 0.9964 | Val Acc: 0.8896 | Test Acc: 0.9114
+Losses: Train: 0.0063, Val: 0.8094, Test: 0.5460
+
+--- Epoch 13/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.50it/s]
+Epoch 13: Train Acc: 0.9950 | Val Acc: 0.8766 | Test Acc: 0.8987
+Losses: Train: 0.0086, Val: 0.8196, Test: 0.4399
+
+--- Epoch 14/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.84it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.28it/s]
+Epoch 14: Train Acc: 0.9959 | Val Acc: 0.8766 | Test Acc: 0.9051
+Losses: Train: 0.0092, Val: 0.8526, Test: 0.4928
+
+--- Epoch 15/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.90it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.29it/s]
+Epoch 15: Train Acc: 0.9973 | Val Acc: 0.9026 | Test Acc: 0.9051
+Losses: Train: 0.0045, Val: 0.8506, Test: 0.5147
+
+--- Epoch 16/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.14it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.33it/s]
+Epoch 16: Train Acc: 0.9982 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0031, Val: 0.8329, Test: 0.4847
+
+--- Epoch 17/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.87it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.21it/s]
+Epoch 17: Train Acc: 0.9986 | Val Acc: 0.8896 | Test Acc: 0.8987
+Losses: Train: 0.0030, Val: 0.7922, Test: 0.4536
+
+--- Epoch 18/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.29it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.90it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.64it/s]
+Epoch 18: Train Acc: 0.9982 | Val Acc: 0.9026 | Test Acc: 0.9051
+Losses: Train: 0.0030, Val: 0.8307, Test: 0.5065
+
+--- Epoch 19/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.88it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.47it/s]
+Epoch 19: Train Acc: 0.9977 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0031, Val: 0.8318, Test: 0.5049
+
+--- Epoch 20/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.96it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.38it/s]
+Epoch 20: Train Acc: 0.9986 | Val Acc: 0.8896 | Test Acc: 0.9051
+Losses: Train: 0.0025, Val: 0.8504, Test: 0.5185
+
+--- Epoch 21/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.82it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.23it/s]
+Epoch 21: Train Acc: 0.9991 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0021, Val: 0.8628, Test: 0.5259
+
+--- Epoch 22/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.74it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.36it/s]
+Epoch 22: Train Acc: 0.9982 | Val Acc: 0.8961 | Test Acc: 0.9114
+Losses: Train: 0.0024, Val: 0.8706, Test: 0.5367
+
+--- Epoch 23/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.81it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.30it/s]
+Epoch 23: Train Acc: 0.9995 | Val Acc: 0.8961 | Test Acc: 0.9114
+Losses: Train: 0.0030, Val: 0.8579, Test: 0.5190
+
+--- Epoch 24/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.77it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.41it/s]
+Epoch 24: Train Acc: 0.9986 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0018, Val: 0.8593, Test: 0.5207
+
+--- Epoch 25/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.87it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.48it/s]
+Epoch 25: Train Acc: 0.9991 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0019, Val: 0.8576, Test: 0.5166
+
+--- Epoch 26/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.97it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.50it/s]
+Epoch 26: Train Acc: 0.9995 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0017, Val: 0.8594, Test: 0.5190
+
+--- Epoch 27/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.78it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.07it/s]
+Epoch 27: Train Acc: 0.9995 | Val Acc: 0.8961 | Test Acc: 0.9051
+Losses: Train: 0.0017, Val: 0.8585, Test: 0.5175
+
+--- Epoch 28/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.28it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.84it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.85it/s]
+Epoch 28: Train Acc: 0.9995 | Val Acc: 0.9026 | Test Acc: 0.9051
+Losses: Train: 0.0020, Val: 0.8601, Test: 0.5196
+
+--- Epoch 29/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.26it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.79it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.31it/s]
+Epoch 29: Train Acc: 0.9991 | Val Acc: 0.8896 | Test Acc: 0.9051
+Losses: Train: 0.0018, Val: 0.8584, Test: 0.5169
+
+--- Epoch 30/30 ---
+Training: 100% 92/92 [00:40<00:00,  2.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.81it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.43it/s]
+Epoch 30: Train Acc: 0.9995 | Val Acc: 0.8896 | Test Acc: 0.9051
+Losses: Train: 0.0015, Val: 0.8584, Test: 0.5169
+
+--- Final Evaluation on Best Model ---
+Final Test: 100% 7/7 [00:01<00:00,  4.44it/s]
+Final Test Accuracy: 0.8987
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     1.0000    0.9375    0.9677        32
+        Healthy skin     0.9184    1.0000    0.9574        45
+Ichthyosis vulgaris      0.8846    1.0000    0.9388        46
+ Lamellar ichthyosis     0.7857    0.5000    0.6111        22
+  Netherton syndrome     0.7692    0.7692    0.7692        13
+
+            accuracy                         0.8987       158
+           macro avg     0.8716    0.8413    0.8489       158
+        weighted avg     0.8943    0.8987    0.8904       158
+
+
+============================================================
+  Training: GFT
+============================================================
+Using device: cuda
+loading Roboflow workspace...
+loading Roboflow project...
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+model.safetensors: 100% 22.9M/22.9M [00:01<00:00, 13.9MB/s]
+
+--- Model Summary ---
+==========================================================================================
+Layer (type:depth-idx)                   Output Shape              Param #
+==========================================================================================
+GFT                                      [24, 5]                   2,010,472
+├─PatchEmbed: 1-1                        [24, 196, 192]            --
+│    └─Conv2d: 2-1                       [24, 192, 14, 14]         147,648
+│    └─Identity: 2-2                     [24, 196, 192]            --
+├─Sequential: 1-2                        [24, 197, 192]            --
+│    └─Block: 2-3                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-1               [24, 197, 192]            384
+│    │    └─Attention: 3-2               [24, 197, 192]            148,224
+│    │    └─Identity: 3-3                [24, 197, 192]            --
+│    │    └─Identity: 3-4                [24, 197, 192]            --
+│    │    └─LayerNorm: 3-5               [24, 197, 192]            384
+│    │    └─Mlp: 3-6                     [24, 197, 192]            295,872
+│    │    └─Identity: 3-7                [24, 197, 192]            --
+│    │    └─Identity: 3-8                [24, 197, 192]            --
+│    └─Block: 2-4                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-9               [24, 197, 192]            384
+│    │    └─Attention: 3-10              [24, 197, 192]            148,224
+│    │    └─Identity: 3-11               [24, 197, 192]            --
+│    │    └─Identity: 3-12               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-13              [24, 197, 192]            384
+│    │    └─Mlp: 3-14                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-15               [24, 197, 192]            --
+│    │    └─Identity: 3-16               [24, 197, 192]            --
+│    └─Block: 2-5                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-17              [24, 197, 192]            384
+│    │    └─Attention: 3-18              [24, 197, 192]            148,224
+│    │    └─Identity: 3-19               [24, 197, 192]            --
+│    │    └─Identity: 3-20               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-21              [24, 197, 192]            384
+│    │    └─Mlp: 3-22                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-23               [24, 197, 192]            --
+│    │    └─Identity: 3-24               [24, 197, 192]            --
+│    └─Block: 2-6                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-25              [24, 197, 192]            384
+│    │    └─Attention: 3-26              [24, 197, 192]            148,224
+│    │    └─Identity: 3-27               [24, 197, 192]            --
+│    │    └─Identity: 3-28               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-29              [24, 197, 192]            384
+│    │    └─Mlp: 3-30                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-31               [24, 197, 192]            --
+│    │    └─Identity: 3-32               [24, 197, 192]            --
+│    └─Block: 2-7                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-33              [24, 197, 192]            384
+│    │    └─Attention: 3-34              [24, 197, 192]            148,224
+│    │    └─Identity: 3-35               [24, 197, 192]            --
+│    │    └─Identity: 3-36               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-37              [24, 197, 192]            384
+│    │    └─Mlp: 3-38                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-39               [24, 197, 192]            --
+│    │    └─Identity: 3-40               [24, 197, 192]            --
+│    └─Block: 2-8                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-41              [24, 197, 192]            384
+│    │    └─Attention: 3-42              [24, 197, 192]            148,224
+│    │    └─Identity: 3-43               [24, 197, 192]            --
+│    │    └─Identity: 3-44               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-45              [24, 197, 192]            384
+│    │    └─Mlp: 3-46                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-47               [24, 197, 192]            --
+│    │    └─Identity: 3-48               [24, 197, 192]            --
+│    └─Block: 2-9                        [24, 197, 192]            --
+│    │    └─LayerNorm: 3-49              [24, 197, 192]            384
+│    │    └─Attention: 3-50              [24, 197, 192]            148,224
+│    │    └─Identity: 3-51               [24, 197, 192]            --
+│    │    └─Identity: 3-52               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-53              [24, 197, 192]            384
+│    │    └─Mlp: 3-54                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-55               [24, 197, 192]            --
+│    │    └─Identity: 3-56               [24, 197, 192]            --
+│    └─Block: 2-10                       [24, 197, 192]            --
+│    │    └─LayerNorm: 3-57              [24, 197, 192]            384
+│    │    └─Attention: 3-58              [24, 197, 192]            148,224
+│    │    └─Identity: 3-59               [24, 197, 192]            --
+│    │    └─Identity: 3-60               [24, 197, 192]            --
+│    │    └─LayerNorm: 3-61              [24, 197, 192]            384
+│    │    └─Mlp: 3-62                    [24, 197, 192]            295,872
+│    │    └─Identity: 3-63               [24, 197, 192]            --
+│    │    └─Identity: 3-64               [24, 197, 192]            --
+├─ModuleList: 1-3                        --                        --
+│    └─GALA: 2-11                        [24, 197, 192]            --
+│    │    └─MultiheadAttention: 3-65     [24, 197, 192]            147,456
+│    │    └─Conv1d: 3-66                 [24, 1, 197]              3
+│    └─GALA: 2-12                        [24, 148, 192]            --
+│    │    └─MultiheadAttention: 3-67     [24, 148, 192]            147,456
+│    │    └─Conv1d: 3-68                 [24, 1, 148]              3
+│    └─GALA: 2-13                        [24, 99, 192]             --
+│    │    └─MultiheadAttention: 3-69     [24, 99, 192]             147,456
+│    │    └─Conv1d: 3-70                 [24, 1, 99]               3
+├─LayerNorm: 1-4                         [24, 50, 192]             384
+├─Linear: 1-5                            [24, 5]                   965
+==========================================================================================
+Total params: 6,160,758
+Trainable params: 6,160,758
+Non-trainable params: 0
+Total mult-adds (Units.MEGABYTES): 780.01
+==========================================================================================
+Input size (MB): 14.45
+Forward/backward pass size (MB): 648.23
+Params size (MB): 14.83
+Estimated Total Size (MB): 677.51
+==========================================================================================
+
+--- Epoch 1/30 ---
+Training: 100% 91/91 [00:25<00:00,  3.58it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.32it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.23it/s]
+Epoch 1: Train Acc: 0.2926 | Val Acc: 0.4221 | Test Acc: 0.5506
+Losses: Train: 1.5943, Val: 1.4402, Test: 1.2993
+New best model saved with Val Acc: 0.4221
+
+--- Epoch 2/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.94it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.09it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.90it/s]
+Epoch 2: Train Acc: 0.4400 | Val Acc: 0.5130 | Test Acc: 0.6772
+Losses: Train: 1.4175, Val: 1.2793, Test: 1.0618
+New best model saved with Val Acc: 0.5130
+
+--- Epoch 3/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.14it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.00it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.48it/s]
+Epoch 3: Train Acc: 0.5852 | Val Acc: 0.5909 | Test Acc: 0.6646
+Losses: Train: 1.1085, Val: 1.0540, Test: 0.8986
+New best model saved with Val Acc: 0.5909
+
+--- Epoch 4/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.24it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.77it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.73it/s]
+Epoch 4: Train Acc: 0.7207 | Val Acc: 0.7143 | Test Acc: 0.7532
+Losses: Train: 0.7923, Val: 0.7614, Test: 0.6940
+New best model saved with Val Acc: 0.7143
+
+--- Epoch 5/30 ---
+Training: 100% 91/91 [00:22<00:00,  4.06it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.29it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.91it/s]
+Epoch 5: Train Acc: 0.7894 | Val Acc: 0.7403 | Test Acc: 0.8291
+Losses: Train: 0.6125, Val: 0.6790, Test: 0.6105
+New best model saved with Val Acc: 0.7403
+
+--- Epoch 6/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.88it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.22it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.92it/s]
+Epoch 6: Train Acc: 0.8549 | Val Acc: 0.7662 | Test Acc: 0.8354
+Losses: Train: 0.4379, Val: 0.6518, Test: 0.5037
+New best model saved with Val Acc: 0.7662
+
+--- Epoch 7/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.26it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.99it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.11it/s]
+Epoch 7: Train Acc: 0.8846 | Val Acc: 0.7792 | Test Acc: 0.8608
+Losses: Train: 0.3155, Val: 0.6651, Test: 0.4924
+New best model saved with Val Acc: 0.7792
+
+--- Epoch 8/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.24it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.28it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.99it/s]
+Epoch 8: Train Acc: 0.9194 | Val Acc: 0.7987 | Test Acc: 0.8671
+Losses: Train: 0.2272, Val: 0.6580, Test: 0.5057
+New best model saved with Val Acc: 0.7987
+
+--- Epoch 9/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.91it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.32it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.95it/s]
+Epoch 9: Train Acc: 0.9281 | Val Acc: 0.7987 | Test Acc: 0.8861
+Losses: Train: 0.2207, Val: 0.7018, Test: 0.4801
+
+--- Epoch 10/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.27it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.19it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.80it/s]
+Epoch 10: Train Acc: 0.9597 | Val Acc: 0.8247 | Test Acc: 0.8671
+Losses: Train: 0.1245, Val: 0.6811, Test: 0.5858
+New best model saved with Val Acc: 0.8247
+
+--- Epoch 11/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.30it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.25it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.04it/s]
+Epoch 11: Train Acc: 0.9647 | Val Acc: 0.8182 | Test Acc: 0.8734
+Losses: Train: 0.1149, Val: 0.7637, Test: 0.7122
+
+--- Epoch 12/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.14it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.34it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.04it/s]
+Epoch 12: Train Acc: 0.9634 | Val Acc: 0.8117 | Test Acc: 0.8797
+Losses: Train: 0.1060, Val: 0.7167, Test: 0.6322
+
+--- Epoch 13/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.19it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.44it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.99it/s]
+Epoch 13: Train Acc: 0.9853 | Val Acc: 0.8377 | Test Acc: 0.8734
+Losses: Train: 0.0487, Val: 0.8159, Test: 0.6886
+New best model saved with Val Acc: 0.8377
+
+--- Epoch 14/30 ---
+Training: 100% 91/91 [00:20<00:00,  4.34it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.37it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.96it/s]
+Epoch 14: Train Acc: 0.9858 | Val Acc: 0.8442 | Test Acc: 0.8734
+Losses: Train: 0.0486, Val: 0.9275, Test: 0.7174
+New best model saved with Val Acc: 0.8442
+
+--- Epoch 15/30 ---
+Training: 100% 91/91 [00:22<00:00,  4.07it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.20it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.93it/s]
+Epoch 15: Train Acc: 0.9918 | Val Acc: 0.8506 | Test Acc: 0.8797
+Losses: Train: 0.0340, Val: 0.8413, Test: 0.7654
+New best model saved with Val Acc: 0.8506
+
+--- Epoch 16/30 ---
+Training: 100% 91/91 [00:22<00:00,  4.01it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.37it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.93it/s]
+Epoch 16: Train Acc: 0.9940 | Val Acc: 0.8377 | Test Acc: 0.8861
+Losses: Train: 0.0254, Val: 0.7941, Test: 0.6414
+
+--- Epoch 17/30 ---
+Training: 100% 91/91 [00:20<00:00,  4.45it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.46it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.27it/s]
+Epoch 17: Train Acc: 0.9963 | Val Acc: 0.8571 | Test Acc: 0.8861
+Losses: Train: 0.0196, Val: 0.8911, Test: 0.7592
+New best model saved with Val Acc: 0.8571
+
+--- Epoch 18/30 ---
+Training: 100% 91/91 [00:22<00:00,  3.99it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.87it/s]
+Epoch 18: Train Acc: 0.9963 | Val Acc: 0.8442 | Test Acc: 0.8987
+Losses: Train: 0.0136, Val: 0.9270, Test: 0.7664
+
+--- Epoch 19/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.95it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.22it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.80it/s]
+Epoch 19: Train Acc: 0.9982 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0123, Val: 0.9136, Test: 0.7576
+
+--- Epoch 20/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.25it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.96it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.17it/s]
+Epoch 20: Train Acc: 0.9963 | Val Acc: 0.8506 | Test Acc: 0.8861
+Losses: Train: 0.0111, Val: 0.9194, Test: 0.7491
+
+--- Epoch 21/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.33it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.00it/s]
+Epoch 21: Train Acc: 0.9977 | Val Acc: 0.8506 | Test Acc: 0.8734
+Losses: Train: 0.0109, Val: 0.9586, Test: 0.7897
+
+--- Epoch 22/30 ---
+Training: 100% 91/91 [00:24<00:00,  3.77it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.95it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.68it/s]
+Epoch 22: Train Acc: 0.9986 | Val Acc: 0.8506 | Test Acc: 0.8861
+Losses: Train: 0.0096, Val: 0.9282, Test: 0.7274
+
+--- Epoch 23/30 ---
+Training: 100% 91/91 [00:22<00:00,  3.98it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.37it/s]
+Epoch 23: Train Acc: 0.9986 | Val Acc: 0.8506 | Test Acc: 0.8924
+Losses: Train: 0.0078, Val: 0.9717, Test: 0.7587
+
+--- Epoch 24/30 ---
+Training: 100% 91/91 [00:22<00:00,  4.11it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.09it/s]
+Testing: 100% 7/7 [00:02<00:00,  2.71it/s]
+Epoch 24: Train Acc: 0.9986 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0077, Val: 0.9817, Test: 0.7610
+
+--- Epoch 25/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.95it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.02it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.68it/s]
+Epoch 25: Train Acc: 0.9991 | Val Acc: 0.8442 | Test Acc: 0.8987
+Losses: Train: 0.0060, Val: 0.9713, Test: 0.7540
+
+--- Epoch 26/30 ---
+Training: 100% 91/91 [00:24<00:00,  3.73it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.26it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.78it/s]
+Epoch 26: Train Acc: 0.9995 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0055, Val: 0.9862, Test: 0.7736
+
+--- Epoch 27/30 ---
+Training: 100% 91/91 [00:24<00:00,  3.73it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.94it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.63it/s]
+Epoch 27: Train Acc: 0.9986 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0062, Val: 0.9708, Test: 0.7532
+
+--- Epoch 28/30 ---
+Training: 100% 91/91 [00:21<00:00,  4.18it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.12it/s]
+Testing: 100% 7/7 [00:02<00:00,  2.65it/s]
+Epoch 28: Train Acc: 0.9991 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0054, Val: 0.9832, Test: 0.7665
+
+--- Epoch 29/30 ---
+Training: 100% 91/91 [00:22<00:00,  4.09it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.80it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.66it/s]
+Epoch 29: Train Acc: 1.0000 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0049, Val: 0.9833, Test: 0.7685
+
+--- Epoch 30/30 ---
+Training: 100% 91/91 [00:23<00:00,  3.79it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.14it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.77it/s]
+Epoch 30: Train Acc: 0.9991 | Val Acc: 0.8442 | Test Acc: 0.8924
+Losses: Train: 0.0065, Val: 0.9833, Test: 0.7687
+
+--- Final Evaluation on Best Model ---
+Final Test: 100% 7/7 [00:01<00:00,  4.47it/s]
+Final Test Accuracy: 0.8861
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9355    0.9062    0.9206        32
+        Healthy skin     0.9184    1.0000    0.9574        45
+Ichthyosis vulgaris      0.9200    1.0000    0.9583        46
+ Lamellar ichthyosis     0.7857    0.5000    0.6111        22
+  Netherton syndrome     0.6429    0.6923    0.6667        13
+
+            accuracy                         0.8861       158
+           macro avg     0.8405    0.8197    0.8228       158
+        weighted avg     0.8812    0.8861    0.8781       158
+
+
+============================================================
+  Training: BiomedCLIP
+============================================================
+Device: cuda | Seed: 42
+Loading BiomedCLIP: microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224
+loading Roboflow workspace...
+loading Roboflow project...
+Classes (5): ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+open_clip_config.json: 100% 707/707 [00:00<00:00, 4.19MB/s]
+open_clip_pytorch_model.bin: 100% 784M/784M [00:05<00:00, 155MB/s]
+config.json: 100% 385/385 [00:00<00:00, 2.38MB/s]
+BiomedCLIP vision embedding dim: 512
+Total params: 195,906,310 | Trainable: 130,779,910
+Epoch  1/30 | Train 0.5706 | Val 0.7597 | Test 0.7722
+  ✓ Best model saved (Val=0.7597)
+Epoch  2/30 | Train 0.7700 | Val 0.7987 | Test 0.8418
+  ✓ Best model saved (Val=0.7987)
+Epoch  3/30 | Train 0.8338 | Val 0.8052 | Test 0.8608
+  ✓ Best model saved (Val=0.8052)
+Epoch  4/30 | Train 0.8597 | Val 0.7987 | Test 0.8544
+Epoch  5/30 | Train 0.8898 | Val 0.8182 | Test 0.8544
+  ✓ Best model saved (Val=0.8182)
+Epoch  6/30 | Train 0.9071 | Val 0.8247 | Test 0.8608
+  ✓ Best model saved (Val=0.8247)
+Epoch  7/30 | Train 0.9212 | Val 0.7987 | Test 0.8354
+Epoch  8/30 | Train 0.9276 | Val 0.8247 | Test 0.8734
+Epoch  9/30 | Train 0.9317 | Val 0.8377 | Test 0.8734
+  ✓ Best model saved (Val=0.8377)
+Epoch 10/30 | Train 0.9426 | Val 0.8442 | Test 0.8734
+  ✓ Best model saved (Val=0.8442)
+Epoch 11/30 | Train 0.9549 | Val 0.8506 | Test 0.8734
+  ✓ Best model saved (Val=0.8506)
+Epoch 12/30 | Train 0.9536 | Val 0.8571 | Test 0.8671
+  ✓ Best model saved (Val=0.8571)
+Epoch 13/30 | Train 0.9545 | Val 0.8571 | Test 0.8734
+Epoch 14/30 | Train 0.9617 | Val 0.8377 | Test 0.8797
+Epoch 15/30 | Train 0.9554 | Val 0.8442 | Test 0.8797
+Epoch 16/30 | Train 0.9622 | Val 0.8636 | Test 0.8797
+  ✓ Best model saved (Val=0.8636)
+Epoch 17/30 | Train 0.9649 | Val 0.8701 | Test 0.8797
+  ✓ Best model saved (Val=0.8701)
+Epoch 18/30 | Train 0.9617 | Val 0.8766 | Test 0.8861
+  ✓ Best model saved (Val=0.8766)
+Epoch 19/30 | Train 0.9613 | Val 0.8701 | Test 0.8861
+Epoch 20/30 | Train 0.9672 | Val 0.8571 | Test 0.8861
+Epoch 21/30 | Train 0.9686 | Val 0.8571 | Test 0.8861
+Epoch 22/30 | Train 0.9704 | Val 0.8766 | Test 0.8861
+Epoch 23/30 | Train 0.9631 | Val 0.8636 | Test 0.8861
+Epoch 24/30 | Train 0.9763 | Val 0.8701 | Test 0.8861
+Epoch 25/30 | Train 0.9690 | Val 0.8766 | Test 0.8861
+Epoch 26/30 | Train 0.9704 | Val 0.8701 | Test 0.8861
+Epoch 27/30 | Train 0.9736 | Val 0.8701 | Test 0.8861
+Epoch 28/30 | Train 0.9777 | Val 0.8701 | Test 0.8861
+Epoch 29/30 | Train 0.9704 | Val 0.8701 | Test 0.8861
+Epoch 30/30 | Train 0.9745 | Val 0.8701 | Test 0.8861
+
+--- Final Evaluation ---
+Test Accuracy: 88.61%
+Macro F1:      0.8359
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9655    0.8750    0.9180        32
+        Healthy skin     0.9783    1.0000    0.9890        45
+Ichthyosis vulgaris      0.9348    0.9348    0.9348        46
+ Lamellar ichthyosis     0.7500    0.5455    0.6316        22
+  Netherton syndrome     0.5714    0.9231    0.7059        13
+
+            accuracy                         0.8861       158
+           macro avg     0.8400    0.8557    0.8359       158
+        weighted avg     0.8978    0.8861    0.8858       158
+
+
+============================================================
+  Training: DINOv2
+============================================================
+Device: cuda | Model: facebook/dinov2-base | Seed: 42
+loading Roboflow workspace...
+loading Roboflow project...
+Classes (5): ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+config.json: 100% 548/548 [00:00<00:00, 2.95MB/s]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+model.safetensors: 100% 346M/346M [00:02<00:00, 126MB/s]
+Loading weights: 100% 223/223 [00:00<00:00, 8406.70it/s]
+DINOv2: 12 transformer blocks | Freezing first 10
+Total params: 86,585,861 | Trainable: 14,185,733
+Epoch  1/30 | Train 0.7577 | Val 0.8377 | Test 0.8481
+  ✓ Best model saved (Val=0.8377)
+Epoch  2/30 | Train 0.8966 | Val 0.8506 | Test 0.8544
+  ✓ Best model saved (Val=0.8506)
+Epoch  3/30 | Train 0.9249 | Val 0.8442 | Test 0.8671
+Epoch  4/30 | Train 0.9444 | Val 0.8766 | Test 0.8924
+  ✓ Best model saved (Val=0.8766)
+Epoch  5/30 | Train 0.9640 | Val 0.8701 | Test 0.8797
+Epoch  6/30 | Train 0.9668 | Val 0.9156 | Test 0.8987
+  ✓ Best model saved (Val=0.9156)
+Epoch  7/30 | Train 0.9750 | Val 0.9091 | Test 0.8861
+Epoch  8/30 | Train 0.9759 | Val 0.8636 | Test 0.8987
+Epoch  9/30 | Train 0.9818 | Val 0.8636 | Test 0.8924
+Epoch 10/30 | Train 0.9800 | Val 0.8701 | Test 0.8924
+Epoch 11/30 | Train 0.9832 | Val 0.8896 | Test 0.8924
+Epoch 12/30 | Train 0.9845 | Val 0.8831 | Test 0.8861
+Epoch 13/30 | Train 0.9845 | Val 0.8766 | Test 0.8924
+Epoch 14/30 | Train 0.9882 | Val 0.8961 | Test 0.8987
+Epoch 15/30 | Train 0.9927 | Val 0.8961 | Test 0.8861
+Epoch 16/30 | Train 0.9941 | Val 0.8571 | Test 0.8987
+Epoch 17/30 | Train 0.9854 | Val 0.8896 | Test 0.8987
+Epoch 18/30 | Train 0.9859 | Val 0.8961 | Test 0.9051
+Epoch 19/30 | Train 0.9900 | Val 0.8831 | Test 0.8924
+Epoch 20/30 | Train 0.9909 | Val 0.9026 | Test 0.8924
+Epoch 21/30 | Train 0.9936 | Val 0.9026 | Test 0.8924
+Epoch 22/30 | Train 0.9913 | Val 0.9026 | Test 0.8987
+Epoch 23/30 | Train 0.9927 | Val 0.8896 | Test 0.8987
+Epoch 24/30 | Train 0.9900 | Val 0.9026 | Test 0.8987
+Epoch 25/30 | Train 0.9913 | Val 0.8961 | Test 0.8987
+Epoch 26/30 | Train 0.9954 | Val 0.9026 | Test 0.8924
+Epoch 27/30 | Train 0.9959 | Val 0.9091 | Test 0.8924
+Epoch 28/30 | Train 0.9904 | Val 0.9091 | Test 0.8924
+Epoch 29/30 | Train 0.9932 | Val 0.9091 | Test 0.8924
+Epoch 30/30 | Train 0.9945 | Val 0.9091 | Test 0.8924
+
+--- Final Evaluation ---
+Test Accuracy: 89.87%
+Macro F1:      0.8443
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     1.0000    0.9375    0.9677        32
+        Healthy skin     0.9574    1.0000    0.9783        45
+Ichthyosis vulgaris      0.9000    0.9783    0.9375        46
+ Lamellar ichthyosis     0.8333    0.4545    0.5882        22
+  Netherton syndrome     0.6316    0.9231    0.7500        13
+
+            accuracy                         0.8987       158
+           macro avg     0.8645    0.8587    0.8443       158
+        weighted avg     0.9052    0.8987    0.8912       158
+
+
+Prediction files: 8/8
+  biomedclip_y_pred.npy
+  coatnet_y_pred.npy
+  dinov2_y_pred.npy
+  efficientnet_pretrained_y_pred.npy
+  gft_y_pred.npy
+  swin_pretrained_y_pred.npy
+  vit_pretrained_y_pred.npy
+  wavecoatnet_y_pred.npy ,
+/content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+
+============================================================
+  Training: CNN (Scratch)
+============================================================
+Using device: cuda
+loading Roboflow workspace...
+loading Roboflow project...
+Downloading Dataset Version Zip in ich-s-1 to folder:: 100% 179569/179569 [00:16<00:00, 11055.13it/s]
+
+Extracting Dataset Version Zip to ich-s-1 in folder:: 100% 2528/2528 [00:21<00:00, 119.07it/s]
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+
+--- Model Summary ---
+==========================================================================================
+Layer (type:depth-idx)                   Output Shape              Param #
+==========================================================================================
+FairCNN                                  [24, 5]                   --
+├─Sequential: 1-1                        [24, 128, 56, 56]         --
+│    └─Conv2d: 2-1                       [24, 32, 224, 224]        896
+│    └─BatchNorm2d: 2-2                  [24, 32, 224, 224]        64
+│    └─ReLU: 2-3                         [24, 32, 224, 224]        --
+│    └─Conv2d: 2-4                       [24, 64, 224, 224]        18,496
+│    └─BatchNorm2d: 2-5                  [24, 64, 224, 224]        128
+│    └─ReLU: 2-6                         [24, 64, 224, 224]        --
+│    └─MaxPool2d: 2-7                    [24, 64, 112, 112]        --
+│    └─Conv2d: 2-8                       [24, 128, 112, 112]       73,856
+│    └─BatchNorm2d: 2-9                  [24, 128, 112, 112]       256
+│    └─ReLU: 2-10                        [24, 128, 112, 112]       --
+│    └─Conv2d: 2-11                      [24, 128, 112, 112]       147,584
+│    └─BatchNorm2d: 2-12                 [24, 128, 112, 112]       256
+│    └─ReLU: 2-13                        [24, 128, 112, 112]       --
+│    └─MaxPool2d: 2-14                   [24, 128, 56, 56]         --
+├─Sequential: 1-2                        [24, 5]                   --
+│    └─AdaptiveAvgPool2d: 2-15           [24, 128, 1, 1]           --
+│    └─Flatten: 2-16                     [24, 128]                 --
+│    └─Linear: 2-17                      [24, 5]                   645
+==========================================================================================
+Total params: 242,181
+Trainable params: 242,181
+Non-trainable params: 0
+Total mult-adds (Units.GIGABYTES): 90.02
+==========================================================================================
+Input size (MB): 14.45
+Forward/backward pass size (MB): 3082.81
+Params size (MB): 0.97
+Estimated Total Size (MB): 3098.23
+==========================================================================================
+
+--- Epoch 1/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.54it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.98it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.01it/s]
+Epoch 1: Train Acc: 0.3374 | Val Acc: 0.5195 | Test Acc: 0.5190
+Losses: Train: 1.4533, Val: 1.2461, Test: 1.2561
+New best model saved with Val Acc: 0.5195
+
+--- Epoch 2/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.61it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.08it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.90it/s]
+Epoch 2: Train Acc: 0.4863 | Val Acc: 0.5649 | Test Acc: 0.6076
+Losses: Train: 1.3008, Val: 1.1430, Test: 1.1544
+New best model saved with Val Acc: 0.5649
+
+--- Epoch 3/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.55it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.44it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.48it/s]
+Epoch 3: Train Acc: 0.5018 | Val Acc: 0.5974 | Test Acc: 0.6519
+Losses: Train: 1.2402, Val: 1.0925, Test: 1.0689
+New best model saved with Val Acc: 0.5974
+
+--- Epoch 4/30 ---
+Training: 100% 92/92 [00:28<00:00,  3.25it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.04it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.88it/s]
+Epoch 4: Train Acc: 0.5410 | Val Acc: 0.5909 | Test Acc: 0.6139
+Losses: Train: 1.1884, Val: 1.0506, Test: 1.0684
+
+--- Epoch 5/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.60it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.01it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.96it/s]
+Epoch 5: Train Acc: 0.5442 | Val Acc: 0.6364 | Test Acc: 0.6646
+Losses: Train: 1.1517, Val: 1.0270, Test: 1.0015
+New best model saved with Val Acc: 0.6364
+
+--- Epoch 6/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.72it/s]
+Validating: 100% 7/7 [00:01<00:00,  3.65it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.93it/s]
+Epoch 6: Train Acc: 0.5706 | Val Acc: 0.6364 | Test Acc: 0.6392
+Losses: Train: 1.1321, Val: 1.0174, Test: 1.0349
+
+--- Epoch 7/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.77it/s]
+Validating: 100% 7/7 [00:02<00:00,  2.90it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.57it/s]
+Epoch 7: Train Acc: 0.5920 | Val Acc: 0.6104 | Test Acc: 0.6519
+Losses: Train: 1.1076, Val: 0.9993, Test: 0.9794
+
+--- Epoch 8/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.86it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.05it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.28it/s]
+Epoch 8: Train Acc: 0.5924 | Val Acc: 0.6234 | Test Acc: 0.6772
+Losses: Train: 1.0878, Val: 0.9936, Test: 0.9834
+
+--- Epoch 9/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.82it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.40it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.06it/s]
+Epoch 9: Train Acc: 0.5902 | Val Acc: 0.6364 | Test Acc: 0.6835
+Losses: Train: 1.0769, Val: 0.9755, Test: 0.9608
+
+--- Epoch 10/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.84it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.11it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.07it/s]
+Epoch 10: Train Acc: 0.6138 | Val Acc: 0.6234 | Test Acc: 0.6646
+Losses: Train: 1.0472, Val: 0.9772, Test: 0.9860
+
+--- Epoch 11/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.72it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.22it/s]
+Testing: 100% 7/7 [00:01<00:00,  3.91it/s]
+Epoch 11: Train Acc: 0.6043 | Val Acc: 0.6494 | Test Acc: 0.6646
+Losses: Train: 1.0460, Val: 0.9701, Test: 0.9496
+New best model saved with Val Acc: 0.6494
+
+--- Epoch 12/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.65it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.19it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.70it/s]
+Epoch 12: Train Acc: 0.6097 | Val Acc: 0.6494 | Test Acc: 0.6582
+Losses: Train: 1.0387, Val: 0.9630, Test: 0.9364
+
+--- Epoch 13/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.66it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.19it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.06it/s]
+Epoch 13: Train Acc: 0.6184 | Val Acc: 0.6623 | Test Acc: 0.6835
+Losses: Train: 1.0156, Val: 0.9559, Test: 0.9439
+New best model saved with Val Acc: 0.6623
+
+--- Epoch 14/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.61it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.01it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.06it/s]
+Epoch 14: Train Acc: 0.6316 | Val Acc: 0.6558 | Test Acc: 0.6899
+Losses: Train: 1.0164, Val: 0.9329, Test: 0.9284
+
+--- Epoch 15/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.55it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.01it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.71it/s]
+Epoch 15: Train Acc: 0.6352 | Val Acc: 0.6429 | Test Acc: 0.6835
+Losses: Train: 0.9965, Val: 0.9450, Test: 0.9444
+
+--- Epoch 16/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.62it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.27it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.09it/s]
+Epoch 16: Train Acc: 0.6362 | Val Acc: 0.6558 | Test Acc: 0.6835
+Losses: Train: 0.9933, Val: 0.9425, Test: 0.9266
+
+--- Epoch 17/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.75it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.14it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.02it/s]
+Epoch 17: Train Acc: 0.6280 | Val Acc: 0.6623 | Test Acc: 0.7025
+Losses: Train: 0.9985, Val: 0.9284, Test: 0.9267
+
+--- Epoch 18/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.93it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.27it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.41it/s]
+Epoch 18: Train Acc: 0.6407 | Val Acc: 0.6299 | Test Acc: 0.6519
+Losses: Train: 0.9893, Val: 0.9485, Test: 0.9504
+
+--- Epoch 19/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.93it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.50it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.09it/s]
+Epoch 19: Train Acc: 0.6439 | Val Acc: 0.6623 | Test Acc: 0.6899
+Losses: Train: 0.9791, Val: 0.9267, Test: 0.9076
+
+--- Epoch 20/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.84it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.20it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.97it/s]
+Epoch 20: Train Acc: 0.6466 | Val Acc: 0.6558 | Test Acc: 0.6772
+Losses: Train: 0.9724, Val: 0.9258, Test: 0.9238
+
+--- Epoch 21/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.65it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.10it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.09it/s]
+Epoch 21: Train Acc: 0.6434 | Val Acc: 0.6494 | Test Acc: 0.6962
+Losses: Train: 0.9705, Val: 0.9249, Test: 0.9246
+
+--- Epoch 22/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.61it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.27it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.07it/s]
+Epoch 22: Train Acc: 0.6539 | Val Acc: 0.6558 | Test Acc: 0.6709
+Losses: Train: 0.9566, Val: 0.9175, Test: 0.9211
+
+--- Epoch 23/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.69it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.39it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.03it/s]
+Epoch 23: Train Acc: 0.6530 | Val Acc: 0.6623 | Test Acc: 0.6772
+Losses: Train: 0.9706, Val: 0.9024, Test: 0.9056
+
+--- Epoch 24/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.68it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.10it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.94it/s]
+Epoch 24: Train Acc: 0.6607 | Val Acc: 0.6818 | Test Acc: 0.6899
+Losses: Train: 0.9552, Val: 0.9048, Test: 0.9056
+New best model saved with Val Acc: 0.6818
+
+--- Epoch 25/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.77it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.48it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.06it/s]
+Epoch 25: Train Acc: 0.6790 | Val Acc: 0.6558 | Test Acc: 0.6899
+Losses: Train: 0.9460, Val: 0.9013, Test: 0.9053
+
+--- Epoch 26/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.79it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.14it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.53it/s]
+Epoch 26: Train Acc: 0.6685 | Val Acc: 0.6753 | Test Acc: 0.6899
+Losses: Train: 0.9469, Val: 0.9030, Test: 0.8967
+
+--- Epoch 27/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.87it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.19it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.11it/s]
+Epoch 27: Train Acc: 0.6576 | Val Acc: 0.6753 | Test Acc: 0.6899
+Losses: Train: 0.9526, Val: 0.9026, Test: 0.9035
+
+--- Epoch 28/30 ---
+Training: 100% 92/92 [00:23<00:00,  3.94it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.05it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.23it/s]
+Epoch 28: Train Acc: 0.6676 | Val Acc: 0.6688 | Test Acc: 0.6962
+Losses: Train: 0.9461, Val: 0.9025, Test: 0.8966
+
+--- Epoch 29/30 ---
+Training: 100% 92/92 [00:24<00:00,  3.79it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.62it/s]
+Epoch 29: Train Acc: 0.6612 | Val Acc: 0.6688 | Test Acc: 0.6835
+Losses: Train: 0.9438, Val: 0.9045, Test: 0.9010
+
+--- Epoch 30/30 ---
+Training: 100% 92/92 [00:25<00:00,  3.62it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.11it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.00it/s]
+Epoch 30: Train Acc: 0.6576 | Val Acc: 0.6688 | Test Acc: 0.6835
+Losses: Train: 0.9502, Val: 0.8982, Test: 0.8985
+
+--- Final Evaluation on Best Model ---
+Re-Eval: 100% 7/7 [00:01<00:00,  5.12it/s]
+Final Test: 100% 7/7 [00:02<00:00,  3.41it/s]
+Final Test Accuracy: 0.6899
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.6667    0.7500    0.7059        32
+        Healthy skin     0.8571    0.9333    0.8936        45
+Ichthyosis vulgaris      0.7955    0.7609    0.7778        46
+ Lamellar ichthyosis     0.1765    0.1364    0.1538        22
+  Netherton syndrome     0.4167    0.3846    0.4000        13
+
+            accuracy                         0.6899       158
+           macro avg     0.5825    0.5930    0.5862       158
+        weighted avg     0.6696    0.6899    0.6782       158
+
+
+============================================================
+  Training: EfficientNet-B0 (Scratch)
+============================================================
+Using device: cuda
+loading Roboflow workspace...
+loading Roboflow project...
+Downloading Dataset Version Zip in ich-s-1 to folder:: 100% 179569/179569 [00:16<00:00, 10960.97it/s]
+
+Extracting Dataset Version Zip to ich-s-1 in folder:: 100% 2528/2528 [00:20<00:00, 121.50it/s]
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+
+Loading efficientnet_b0 architecture (trained FROM SCRATCH — see pretrained version for primary comparison)...
+
+--- Model Summary ---
+===============================================================================================
+Layer (type:depth-idx)                        Output Shape              Param #
+===============================================================================================
+EfficientNet                                  [24, 5]                   --
+├─Conv2d: 1-1                                 [24, 32, 112, 112]        864
+├─BatchNormAct2d: 1-2                         [24, 32, 112, 112]        64
+│    └─Identity: 2-1                          [24, 32, 112, 112]        --
+│    └─SiLU: 2-2                              [24, 32, 112, 112]        --
+├─Sequential: 1-3                             [24, 320, 7, 7]           --
+│    └─Sequential: 2-3                        [24, 16, 112, 112]        --
+│    │    └─DepthwiseSeparableConv: 3-1       [24, 16, 112, 112]        1,448
+│    └─Sequential: 2-4                        [24, 24, 56, 56]          --
+│    │    └─InvertedResidual: 3-2             [24, 24, 56, 56]          6,004
+│    │    └─InvertedResidual: 3-3             [24, 24, 56, 56]          10,710
+│    └─Sequential: 2-5                        [24, 40, 28, 28]          --
+│    │    └─InvertedResidual: 3-4             [24, 40, 28, 28]          15,350
+│    │    └─InvertedResidual: 3-5             [24, 40, 28, 28]          31,290
+│    └─Sequential: 2-6                        [24, 80, 14, 14]          --
+│    │    └─InvertedResidual: 3-6             [24, 80, 14, 14]          37,130
+│    │    └─InvertedResidual: 3-7             [24, 80, 14, 14]          102,900
+│    │    └─InvertedResidual: 3-8             [24, 80, 14, 14]          102,900
+│    └─Sequential: 2-7                        [24, 112, 14, 14]         --
+│    │    └─InvertedResidual: 3-9             [24, 112, 14, 14]         126,004
+│    │    └─InvertedResidual: 3-10            [24, 112, 14, 14]         208,572
+│    │    └─InvertedResidual: 3-11            [24, 112, 14, 14]         208,572
+│    └─Sequential: 2-8                        [24, 192, 7, 7]           --
+│    │    └─InvertedResidual: 3-12            [24, 192, 7, 7]           262,492
+│    │    └─InvertedResidual: 3-13            [24, 192, 7, 7]           587,952
+│    │    └─InvertedResidual: 3-14            [24, 192, 7, 7]           587,952
+│    │    └─InvertedResidual: 3-15            [24, 192, 7, 7]           587,952
+│    └─Sequential: 2-9                        [24, 320, 7, 7]           --
+│    │    └─InvertedResidual: 3-16            [24, 320, 7, 7]           717,232
+├─Conv2d: 1-4                                 [24, 1280, 7, 7]          409,600
+├─BatchNormAct2d: 1-5                         [24, 1280, 7, 7]          2,560
+│    └─Identity: 2-10                         [24, 1280, 7, 7]          --
+│    └─SiLU: 2-11                             [24, 1280, 7, 7]          --
+├─SelectAdaptivePool2d: 1-6                   [24, 1280]                --
+│    └─AdaptiveAvgPool2d: 2-12                [24, 1280, 1, 1]          --
+│    └─Flatten: 2-13                          [24, 1280]                --
+├─Linear: 1-7                                 [24, 5]                   6,405
+===============================================================================================
+Total params: 4,013,953
+Trainable params: 4,013,953
+Non-trainable params: 0
+Total mult-adds (Units.GIGABYTES): 9.23
+===============================================================================================
+Input size (MB): 14.45
+Forward/backward pass size (MB): 1295.43
+Params size (MB): 15.89
+Estimated Total Size (MB): 1325.77
+===============================================================================================
+
+--- Epoch 1/30 ---
+Training: 100% 92/92 [00:28<00:00,  3.28it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.54it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.02it/s]
+Epoch 1: Train Acc: 0.2477 | Val Acc: 0.2727 | Test Acc: 0.3291
+Losses: Train: 2.2421, Val: 1.6961, Test: 1.8291
+New best model saved with Val Acc: 0.2727
+
+--- Epoch 2/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.48it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.07it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.36it/s]
+Epoch 2: Train Acc: 0.2782 | Val Acc: 0.2662 | Test Acc: 0.2278
+Losses: Train: 1.8655, Val: 1.6274, Test: 1.8390
+
+--- Epoch 3/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.36it/s]
+Validating: 100% 7/7 [00:01<00:00,  3.62it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.18it/s]
+Epoch 3: Train Acc: 0.2855 | Val Acc: 0.3961 | Test Acc: 0.4241
+Losses: Train: 1.8761, Val: 1.4277, Test: 1.5761
+New best model saved with Val Acc: 0.3961
+
+--- Epoch 4/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.33it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.51it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.23it/s]
+Epoch 4: Train Acc: 0.3406 | Val Acc: 0.3896 | Test Acc: 0.3671
+Losses: Train: 1.6930, Val: 1.4732, Test: 2.0455
+
+--- Epoch 5/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.30it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.39it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.16it/s]
+Epoch 5: Train Acc: 0.3461 | Val Acc: 0.4481 | Test Acc: 0.5063
+Losses: Train: 1.7651, Val: 1.2743, Test: 1.3143
+New best model saved with Val Acc: 0.4481
+
+--- Epoch 6/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.33it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.47it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.97it/s]
+Epoch 6: Train Acc: 0.3862 | Val Acc: 0.5455 | Test Acc: 0.5633
+Losses: Train: 1.5932, Val: 1.2289, Test: 1.5057
+New best model saved with Val Acc: 0.5455
+
+--- Epoch 7/30 ---
+Training: 100% 92/92 [00:28<00:00,  3.27it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.96it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.11it/s]
+Epoch 7: Train Acc: 0.4189 | Val Acc: 0.4481 | Test Acc: 0.4873
+Losses: Train: 1.4917, Val: 1.2458, Test: 1.3930
+
+--- Epoch 8/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.29it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.85it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.22it/s]
+Epoch 8: Train Acc: 0.4176 | Val Acc: 0.5714 | Test Acc: 0.5886
+Losses: Train: 1.4963, Val: 1.2369, Test: 1.3815
+New best model saved with Val Acc: 0.5714
+
+--- Epoch 9/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.32it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.04it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.24it/s]
+Epoch 9: Train Acc: 0.4467 | Val Acc: 0.5714 | Test Acc: 0.6266
+Losses: Train: 1.4381, Val: 1.1704, Test: 1.0479
+
+--- Epoch 10/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.33it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.05it/s]
+Testing: 100% 7/7 [00:02<00:00,  2.97it/s]
+Epoch 10: Train Acc: 0.4836 | Val Acc: 0.5844 | Test Acc: 0.6266
+Losses: Train: 1.3655, Val: 1.0970, Test: 0.9720
+New best model saved with Val Acc: 0.5844
+
+--- Epoch 11/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.46it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.14it/s]
+Testing: 100% 7/7 [00:02<00:00,  3.12it/s]
+Epoch 11: Train Acc: 0.4882 | Val Acc: 0.5779 | Test Acc: 0.6392
+Losses: Train: 1.2887, Val: 1.0420, Test: 1.1343
+
+--- Epoch 12/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.42it/s]
+Validating: 100% 7/7 [00:02<00:00,  3.06it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.88it/s]
+Epoch 12: Train Acc: 0.4836 | Val Acc: 0.6299 | Test Acc: 0.7152
+Losses: Train: 1.3118, Val: 0.9939, Test: 0.9882
+New best model saved with Val Acc: 0.6299
+
+--- Epoch 13/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.29it/s]
+Validating: 100% 7/7 [00:01<00:00,  4.90it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.06it/s]
+Epoch 13: Train Acc: 0.5150 | Val Acc: 0.5779 | Test Acc: 0.6582
+Losses: Train: 1.2273, Val: 1.0542, Test: 1.0225
+
+--- Epoch 14/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.35it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.37it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.19it/s]
+Epoch 14: Train Acc: 0.5064 | Val Acc: 0.6169 | Test Acc: 0.6329
+Losses: Train: 1.2451, Val: 0.9754, Test: 0.9570
+
+--- Epoch 15/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.38it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.03it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.20it/s]
+Epoch 15: Train Acc: 0.5278 | Val Acc: 0.6623 | Test Acc: 0.6709
+Losses: Train: 1.1867, Val: 0.9880, Test: 0.9467
+New best model saved with Val Acc: 0.6623
+
+--- Epoch 16/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.40it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.51it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.35it/s]
+Epoch 16: Train Acc: 0.5437 | Val Acc: 0.6494 | Test Acc: 0.6519
+Losses: Train: 1.1759, Val: 0.9794, Test: 0.9443
+
+--- Epoch 17/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.46it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.43it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.64it/s]
+Epoch 17: Train Acc: 0.5351 | Val Acc: 0.6494 | Test Acc: 0.6835
+Losses: Train: 1.1693, Val: 0.9420, Test: 0.9023
+
+--- Epoch 18/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.43it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.45it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.91it/s]
+Epoch 18: Train Acc: 0.5533 | Val Acc: 0.6039 | Test Acc: 0.5949
+Losses: Train: 1.1272, Val: 1.0211, Test: 1.0435
+
+--- Epoch 19/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.48it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.32it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.30it/s]
+Epoch 19: Train Acc: 0.5505 | Val Acc: 0.6364 | Test Acc: 0.6266
+Losses: Train: 1.1087, Val: 0.9393, Test: 0.9131
+
+--- Epoch 20/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.44it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.44it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.39it/s]
+Epoch 20: Train Acc: 0.5619 | Val Acc: 0.6558 | Test Acc: 0.6456
+Losses: Train: 1.0932, Val: 0.9665, Test: 0.9359
+
+--- Epoch 21/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.42it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.50it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.43it/s]
+Epoch 21: Train Acc: 0.5679 | Val Acc: 0.6494 | Test Acc: 0.6329
+Losses: Train: 1.0904, Val: 0.9525, Test: 0.9281
+
+--- Epoch 22/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.45it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.37it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.28it/s]
+Epoch 22: Train Acc: 0.5724 | Val Acc: 0.6299 | Test Acc: 0.6456
+Losses: Train: 1.0587, Val: 0.9447, Test: 0.9299
+
+--- Epoch 23/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.44it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.51it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.25it/s]
+Epoch 23: Train Acc: 0.5719 | Val Acc: 0.6429 | Test Acc: 0.6772
+Losses: Train: 1.0809, Val: 0.9822, Test: 0.9407
+
+--- Epoch 24/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.49it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.56it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.18it/s]
+Epoch 24: Train Acc: 0.5911 | Val Acc: 0.6494 | Test Acc: 0.6456
+Losses: Train: 1.0325, Val: 0.9548, Test: 1.1216
+
+--- Epoch 25/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.43it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.49it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.40it/s]
+Epoch 25: Train Acc: 0.5797 | Val Acc: 0.6558 | Test Acc: 0.6519
+Losses: Train: 1.0292, Val: 0.9436, Test: 0.9221
+
+--- Epoch 26/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.41it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.46it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.28it/s]
+Epoch 26: Train Acc: 0.6038 | Val Acc: 0.6688 | Test Acc: 0.6266
+Losses: Train: 0.9944, Val: 1.0089, Test: 1.0398
+New best model saved with Val Acc: 0.6688
+
+--- Epoch 27/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.37it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.06it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.29it/s]
+Epoch 27: Train Acc: 0.5979 | Val Acc: 0.6753 | Test Acc: 0.6519
+Losses: Train: 1.0178, Val: 0.9812, Test: 1.0351
+New best model saved with Val Acc: 0.6753
+
+--- Epoch 28/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.38it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.15it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.23it/s]
+Epoch 28: Train Acc: 0.5934 | Val Acc: 0.6688 | Test Acc: 0.6646
+Losses: Train: 1.0220, Val: 0.9342, Test: 0.9866
+
+--- Epoch 29/30 ---
+Training: 100% 92/92 [00:26<00:00,  3.45it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.59it/s]
+Testing: 100% 7/7 [00:01<00:00,  4.86it/s]
+Epoch 29: Train Acc: 0.5924 | Val Acc: 0.6753 | Test Acc: 0.6392
+Losses: Train: 1.0155, Val: 0.9918, Test: 1.1019
+
+--- Epoch 30/30 ---
+Training: 100% 92/92 [00:27<00:00,  3.40it/s]
+Validating: 100% 7/7 [00:01<00:00,  5.33it/s]
+Testing: 100% 7/7 [00:01<00:00,  5.28it/s]
+Epoch 30: Train Acc: 0.6043 | Val Acc: 0.6688 | Test Acc: 0.6772
+Losses: Train: 0.9983, Val: 0.9275, Test: 0.9436
+
+--- Final Evaluation on Best Model ---
+Final Test: 100% 7/7 [00:02<00:00,  3.06it/s]
+Final Test Accuracy: 0.6519
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.7027    0.8125    0.7536        32
+        Healthy skin     0.8372    0.8000    0.8182        45
+Ichthyosis vulgaris      0.7778    0.6087    0.6829        46
+ Lamellar ichthyosis     0.3000    0.2727    0.2857        22
+  Netherton syndrome     0.3182    0.5385    0.4000        13
+
+            accuracy                         0.6519       158
+           macro avg     0.5872    0.6065    0.5881       158
+        weighted avg     0.6752    0.6519    0.6572       158
+
+
+============================================================
+  Training: Swin-T (Scratch)
+============================================================
+Using device: cuda
+Downloading dataset from Roboflow...
+loading Roboflow workspace...
+loading Roboflow project...
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+
+--- Model Summary ---
+====================================================================================================
+Layer (type:depth-idx)                             Output Shape              Param #
+====================================================================================================
+SwinTransformer                                    [16, 5]                   --
+├─PatchEmbed: 1-1                                  [16, 3136, 96]            --
+│    └─Conv2d: 2-1                                 [16, 96, 56, 56]          4,704
+│    └─LayerNorm: 2-2                              [16, 3136, 96]            192
+├─ModuleList: 1-2                                  --                        --
+│    └─BasicLayer: 2-3                             [16, 3136, 96]            --
+│    │    └─ModuleList: 3-1                        --                        224,694
+│    │    └─PatchMerging: 3-2                      [16, 784, 192]            74,496
+│    └─BasicLayer: 2-4                             [16, 784, 192]            --
+│    │    └─ModuleList: 3-3                        --                        891,756
+│    │    └─PatchMerging: 3-4                      [16, 196, 384]            296,448
+│    └─BasicLayer: 2-5                             [16, 196, 384]            --
+│    │    └─ModuleList: 3-5                        --                        10,658,952
+│    │    └─PatchMerging: 3-6                      [16, 49, 768]             1,182,720
+│    └─BasicLayer: 2-6                             [16, 49, 768]             --
+│    │    └─ModuleList: 3-7                        --                        14,183,856
+├─LayerNorm: 1-3                                   [16, 49, 768]             1,536
+├─AdaptiveAvgPool1d: 1-4                           [16, 768, 1]              --
+├─Linear: 1-5                                      [16, 5]                   3,845
+====================================================================================================
+Total params: 27,523,199
+Trainable params: 27,523,199
+Non-trainable params: 0
+Total mult-adds (Units.MEGABYTES): 992.50
+====================================================================================================
+Input size (MB): 9.63
+Forward/backward pass size (MB): 2196.51
+Params size (MB): 110.00
+Estimated Total Size (MB): 2316.14
+====================================================================================================
+
+--- Starting Training ---
+
+--- Epoch 1/30 ---
+Training: 100% 138/138 [00:37<00:00,  3.72it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.50it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.49it/s]
+Epoch 1: Train Acc: 0.3798 | Val Acc: 0.4675 | Test Acc: 0.5316
+Losses: Train: 1.5174, Val: 1.3407, Test: 1.2405
+New best model saved with Val Acc: 0.4675
+
+--- Epoch 2/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.15it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.24it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.31it/s]
+Epoch 2: Train Acc: 0.5150 | Val Acc: 0.5130 | Test Acc: 0.5316
+Losses: Train: 1.2335, Val: 1.2434, Test: 1.1634
+New best model saved with Val Acc: 0.5130
+
+--- Epoch 3/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.81it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.28it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.36it/s]
+Epoch 3: Train Acc: 0.5410 | Val Acc: 0.5909 | Test Acc: 0.6456
+Losses: Train: 1.1540, Val: 1.0052, Test: 0.9759
+New best model saved with Val Acc: 0.5909
+
+--- Epoch 4/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.77it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.61it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.28it/s]
+Epoch 4: Train Acc: 0.5615 | Val Acc: 0.6104 | Test Acc: 0.6772
+Losses: Train: 1.0859, Val: 0.9838, Test: 0.9560
+New best model saved with Val Acc: 0.6104
+
+--- Epoch 5/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.85it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.61it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.41it/s]
+Epoch 5: Train Acc: 0.6043 | Val Acc: 0.6494 | Test Acc: 0.6646
+Losses: Train: 0.9895, Val: 0.9931, Test: 0.8919
+New best model saved with Val Acc: 0.6494
+
+--- Epoch 6/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.88it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.23it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.40it/s]
+Epoch 6: Train Acc: 0.6375 | Val Acc: 0.6623 | Test Acc: 0.6772
+Losses: Train: 0.9309, Val: 0.9440, Test: 0.8651
+New best model saved with Val Acc: 0.6623
+
+--- Epoch 7/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.77it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.47it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.43it/s]
+Epoch 7: Train Acc: 0.6585 | Val Acc: 0.6558 | Test Acc: 0.7342
+Losses: Train: 0.8738, Val: 0.8784, Test: 0.7766
+
+--- Epoch 8/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.18it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.58it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.16it/s]
+Epoch 8: Train Acc: 0.6931 | Val Acc: 0.6558 | Test Acc: 0.7025
+Losses: Train: 0.8003, Val: 0.8747, Test: 0.7951
+
+--- Epoch 9/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.10it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.47it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.38it/s]
+Epoch 9: Train Acc: 0.6940 | Val Acc: 0.6948 | Test Acc: 0.7595
+Losses: Train: 0.7700, Val: 0.8165, Test: 0.7816
+New best model saved with Val Acc: 0.6948
+
+--- Epoch 10/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.91it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.15it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.67it/s]
+Epoch 10: Train Acc: 0.7263 | Val Acc: 0.7078 | Test Acc: 0.7595
+Losses: Train: 0.7010, Val: 0.7891, Test: 0.7478
+New best model saved with Val Acc: 0.7078
+
+--- Epoch 11/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.80it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.45it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.60it/s]
+Epoch 11: Train Acc: 0.7432 | Val Acc: 0.6818 | Test Acc: 0.7595
+Losses: Train: 0.6648, Val: 0.8561, Test: 0.7914
+
+--- Epoch 12/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.09it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.29it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.41it/s]
+Epoch 12: Train Acc: 0.7659 | Val Acc: 0.6883 | Test Acc: 0.7595
+Losses: Train: 0.6068, Val: 0.8856, Test: 0.7339
+
+--- Epoch 13/30 ---
+Training: 100% 138/138 [00:32<00:00,  4.20it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.45it/s]
+Testing: 100% 10/10 [00:01<00:00,  5.68it/s]
+Epoch 13: Train Acc: 0.7769 | Val Acc: 0.6948 | Test Acc: 0.7089
+Losses: Train: 0.5627, Val: 0.8321, Test: 0.8248
+
+--- Epoch 14/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.09it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.20it/s]
+Testing: 100% 10/10 [00:01<00:00,  5.97it/s]
+Epoch 14: Train Acc: 0.8229 | Val Acc: 0.6688 | Test Acc: 0.7468
+Losses: Train: 0.4826, Val: 0.9476, Test: 0.8081
+
+--- Epoch 15/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.16it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.58it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.02it/s]
+Epoch 15: Train Acc: 0.8361 | Val Acc: 0.7208 | Test Acc: 0.7785
+Losses: Train: 0.4516, Val: 0.9312, Test: 0.7653
+New best model saved with Val Acc: 0.7208
+
+--- Epoch 16/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.77it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.38it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.51it/s]
+Epoch 16: Train Acc: 0.8525 | Val Acc: 0.7013 | Test Acc: 0.7532
+Losses: Train: 0.4001, Val: 0.9981, Test: 0.8930
+
+--- Epoch 17/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.17it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.28it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.33it/s]
+Epoch 17: Train Acc: 0.8693 | Val Acc: 0.7273 | Test Acc: 0.7975
+Losses: Train: 0.3476, Val: 0.8923, Test: 0.8312
+New best model saved with Val Acc: 0.7273
+
+--- Epoch 18/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.86it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.68it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.35it/s]
+Epoch 18: Train Acc: 0.8871 | Val Acc: 0.7403 | Test Acc: 0.7975
+Losses: Train: 0.3082, Val: 0.8997, Test: 0.9115
+New best model saved with Val Acc: 0.7403
+
+--- Epoch 19/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.78it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.55it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.40it/s]
+Epoch 19: Train Acc: 0.9194 | Val Acc: 0.7403 | Test Acc: 0.7785
+Losses: Train: 0.2514, Val: 0.9078, Test: 0.8532
+
+--- Epoch 20/30 ---
+Training: 100% 138/138 [00:32<00:00,  4.19it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.53it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.56it/s]
+Epoch 20: Train Acc: 0.9148 | Val Acc: 0.7468 | Test Acc: 0.7911
+Losses: Train: 0.2328, Val: 0.9285, Test: 0.8877
+New best model saved with Val Acc: 0.7468
+
+--- Epoch 21/30 ---
+Training: 100% 138/138 [00:36<00:00,  3.77it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.63it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.28it/s]
+Epoch 21: Train Acc: 0.9344 | Val Acc: 0.7338 | Test Acc: 0.7911
+Losses: Train: 0.1820, Val: 1.0612, Test: 0.9397
+
+--- Epoch 22/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.15it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.05it/s]
+Testing: 100% 10/10 [00:01<00:00,  5.85it/s]
+Epoch 22: Train Acc: 0.9540 | Val Acc: 0.7532 | Test Acc: 0.7911
+Losses: Train: 0.1512, Val: 1.0663, Test: 0.9650
+New best model saved with Val Acc: 0.7532
+
+--- Epoch 23/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.89it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.48it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.51it/s]
+Epoch 23: Train Acc: 0.9627 | Val Acc: 0.7468 | Test Acc: 0.7911
+Losses: Train: 0.1092, Val: 1.0857, Test: 0.9510
+
+--- Epoch 24/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.12it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.95it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.37it/s]
+Epoch 24: Train Acc: 0.9627 | Val Acc: 0.7468 | Test Acc: 0.8038
+Losses: Train: 0.1140, Val: 1.1222, Test: 0.9931
+
+--- Epoch 25/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.18it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.58it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.19it/s]
+Epoch 25: Train Acc: 0.9695 | Val Acc: 0.7597 | Test Acc: 0.7848
+Losses: Train: 0.1019, Val: 1.1994, Test: 1.0984
+New best model saved with Val Acc: 0.7597
+
+--- Epoch 26/30 ---
+Training: 100% 138/138 [00:35<00:00,  3.85it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.62it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.60it/s]
+Epoch 26: Train Acc: 0.9759 | Val Acc: 0.7532 | Test Acc: 0.7911
+Losses: Train: 0.0879, Val: 1.1607, Test: 1.0244
+
+--- Epoch 27/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.14it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.59it/s]
+Testing: 100% 10/10 [00:01<00:00,  5.61it/s]
+Epoch 27: Train Acc: 0.9836 | Val Acc: 0.7597 | Test Acc: 0.7911
+Losses: Train: 0.0704, Val: 1.1670, Test: 1.0576
+
+--- Epoch 28/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.13it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.70it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.44it/s]
+Epoch 28: Train Acc: 0.9759 | Val Acc: 0.7532 | Test Acc: 0.7911
+Losses: Train: 0.0780, Val: 1.1758, Test: 1.0591
+
+--- Epoch 29/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.16it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.60it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.45it/s]
+Epoch 29: Train Acc: 0.9804 | Val Acc: 0.7532 | Test Acc: 0.7848
+Losses: Train: 0.0702, Val: 1.1966, Test: 1.0926
+
+--- Epoch 30/30 ---
+Training: 100% 138/138 [00:33<00:00,  4.16it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.59it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.50it/s]
+Epoch 30: Train Acc: 0.9836 | Val Acc: 0.7597 | Test Acc: 0.7911
+Losses: Train: 0.0679, Val: 1.1875, Test: 1.0817
+
+--- Final Evaluation on Best Model ---
+Final Test: 100% 10/10 [00:01<00:00,  6.50it/s]
+Final Test Accuracy: 0.7848
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.7568    0.8750    0.8116        32
+        Healthy skin     0.9362    0.9778    0.9565        45
+Ichthyosis vulgaris      0.7778    0.9130    0.8400        46
+ Lamellar ichthyosis     0.4615    0.2727    0.3429        22
+  Netherton syndrome     0.5714    0.3077    0.4000        13
+
+            accuracy                         0.7848       158
+           macro avg     0.7007    0.6692    0.6702       158
+        weighted avg     0.7576    0.7848    0.7620       158
+
+
+============================================================
+  Training: ViT (Scratch)
+============================================================
+Using device: cuda
+Downloading dataset from Roboflow...
+loading Roboflow workspace...
+loading Roboflow project...
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+
+--- Model Summary ---
+===============================================================================================
+Layer (type:depth-idx)                        Output Shape              Param #
+===============================================================================================
+VisionTransformer                             [16, 5]                   38,016
+├─PatchEmbedding: 1-1                         [16, 196, 192]            --
+│    └─Conv2d: 2-1                            [16, 192, 14, 14]         147,648
+├─Dropout: 1-2                                [16, 197, 192]            --
+├─ModuleList: 1-3                             --                        --
+│    └─TransformerEncoderBlock: 2-2           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-1                    [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-2       [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-3                    [16, 197, 192]            384
+│    │    └─MLP: 3-4                          [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-3           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-5                    [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-6       [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-7                    [16, 197, 192]            384
+│    │    └─MLP: 3-8                          [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-4           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-9                    [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-10      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-11                   [16, 197, 192]            384
+│    │    └─MLP: 3-12                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-5           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-13                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-14      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-15                   [16, 197, 192]            384
+│    │    └─MLP: 3-16                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-6           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-17                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-18      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-19                   [16, 197, 192]            384
+│    │    └─MLP: 3-20                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-7           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-21                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-22      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-23                   [16, 197, 192]            384
+│    │    └─MLP: 3-24                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-8           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-25                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-26      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-27                   [16, 197, 192]            384
+│    │    └─MLP: 3-28                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-9           [16, 197, 192]            --
+│    │    └─LayerNorm: 3-29                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-30      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-31                   [16, 197, 192]            384
+│    │    └─MLP: 3-32                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-10          [16, 197, 192]            --
+│    │    └─LayerNorm: 3-33                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-34      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-35                   [16, 197, 192]            384
+│    │    └─MLP: 3-36                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-11          [16, 197, 192]            --
+│    │    └─LayerNorm: 3-37                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-38      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-39                   [16, 197, 192]            384
+│    │    └─MLP: 3-40                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-12          [16, 197, 192]            --
+│    │    └─LayerNorm: 3-41                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-42      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-43                   [16, 197, 192]            384
+│    │    └─MLP: 3-44                         [16, 197, 192]            295,872
+│    └─TransformerEncoderBlock: 2-13          [16, 197, 192]            --
+│    │    └─LayerNorm: 3-45                   [16, 197, 192]            384
+│    │    └─MultiHeadSelfAttention: 3-46      [16, 197, 192]            148,224
+│    │    └─LayerNorm: 3-47                   [16, 197, 192]            384
+│    │    └─MLP: 3-48                         [16, 197, 192]            295,872
+├─LayerNorm: 1-4                              [16, 197, 192]            384
+├─Linear: 1-5                                 [16, 5]                   965
+===============================================================================================
+Total params: 5,525,381
+Trainable params: 5,525,381
+Non-trainable params: 0
+Total mult-adds (Units.MEGABYTES): 548.46
+===============================================================================================
+Input size (MB): 9.63
+Forward/backward pass size (MB): 648.73
+Params size (MB): 21.95
+Estimated Total Size (MB): 680.32
+===============================================================================================
+
+--- Starting Training ---
+
+--- Epoch 1/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.23it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.71it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.09it/s]
+Epoch 1: Train Acc: 0.4203 | Val Acc: 0.5714 | Test Acc: 0.6329
+Losses: Train: 1.4100, Val: 1.1468, Test: 1.1276
+New best model saved with Val Acc: 0.5714
+
+--- Epoch 2/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.16it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.58it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.34it/s]
+Epoch 2: Train Acc: 0.5159 | Val Acc: 0.6104 | Test Acc: 0.6392
+Losses: Train: 1.1983, Val: 1.0425, Test: 1.0572
+New best model saved with Val Acc: 0.6104
+
+--- Epoch 3/30 ---
+Training: 100% 138/138 [00:24<00:00,  5.71it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.76it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.19it/s]
+Epoch 3: Train Acc: 0.5414 | Val Acc: 0.5455 | Test Acc: 0.5886
+Losses: Train: 1.1364, Val: 1.0538, Test: 1.0260
+
+--- Epoch 4/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.85it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.52it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.81it/s]
+Epoch 4: Train Acc: 0.5692 | Val Acc: 0.6364 | Test Acc: 0.6962
+Losses: Train: 1.0761, Val: 0.9805, Test: 0.8918
+New best model saved with Val Acc: 0.6364
+
+--- Epoch 5/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.82it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.39it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.98it/s]
+Epoch 5: Train Acc: 0.5879 | Val Acc: 0.5325 | Test Acc: 0.6392
+Losses: Train: 1.0242, Val: 1.0308, Test: 1.0604
+
+--- Epoch 6/30 ---
+Training: 100% 138/138 [00:21<00:00,  6.29it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.33it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.36it/s]
+Epoch 6: Train Acc: 0.6075 | Val Acc: 0.6299 | Test Acc: 0.6899
+Losses: Train: 0.9906, Val: 0.9701, Test: 0.8574
+
+--- Epoch 7/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.04it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.40it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.15it/s]
+Epoch 7: Train Acc: 0.6348 | Val Acc: 0.6494 | Test Acc: 0.7152
+Losses: Train: 0.9462, Val: 0.8718, Test: 0.7618
+New best model saved with Val Acc: 0.6494
+
+--- Epoch 8/30 ---
+Training: 100% 138/138 [00:24<00:00,  5.70it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.56it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.26it/s]
+Epoch 8: Train Acc: 0.6466 | Val Acc: 0.6623 | Test Acc: 0.7278
+Losses: Train: 0.9122, Val: 0.8831, Test: 0.7687
+New best model saved with Val Acc: 0.6623
+
+--- Epoch 9/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.79it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.71it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.96it/s]
+Epoch 9: Train Acc: 0.6466 | Val Acc: 0.6883 | Test Acc: 0.7468
+Losses: Train: 0.8909, Val: 0.8439, Test: 0.7403
+New best model saved with Val Acc: 0.6883
+
+--- Epoch 10/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.96it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.76it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.95it/s]
+Epoch 10: Train Acc: 0.6612 | Val Acc: 0.6818 | Test Acc: 0.7152
+Losses: Train: 0.8625, Val: 0.8772, Test: 0.7430
+
+--- Epoch 11/30 ---
+Training: 100% 138/138 [00:21<00:00,  6.38it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.46it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.37it/s]
+Epoch 11: Train Acc: 0.6821 | Val Acc: 0.6429 | Test Acc: 0.7532
+Losses: Train: 0.8114, Val: 0.8811, Test: 0.7629
+
+--- Epoch 12/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.13it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.51it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.25it/s]
+Epoch 12: Train Acc: 0.6890 | Val Acc: 0.7013 | Test Acc: 0.7532
+Losses: Train: 0.7962, Val: 0.8368, Test: 0.7137
+New best model saved with Val Acc: 0.7013
+
+--- Epoch 13/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.77it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.61it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.32it/s]
+Epoch 13: Train Acc: 0.6999 | Val Acc: 0.6948 | Test Acc: 0.7468
+Losses: Train: 0.7616, Val: 0.8241, Test: 0.7399
+
+--- Epoch 14/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.84it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.46it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.31it/s]
+Epoch 14: Train Acc: 0.7049 | Val Acc: 0.6753 | Test Acc: 0.7215
+Losses: Train: 0.7388, Val: 0.8938, Test: 0.7755
+
+--- Epoch 15/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.02it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.56it/s]
+Testing: 100% 10/10 [00:01<00:00,  5.71it/s]
+Epoch 15: Train Acc: 0.7236 | Val Acc: 0.7143 | Test Acc: 0.7848
+Losses: Train: 0.7080, Val: 0.7928, Test: 0.6481
+New best model saved with Val Acc: 0.7143
+
+--- Epoch 16/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.19it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.38it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.30it/s]
+Epoch 16: Train Acc: 0.7213 | Val Acc: 0.6364 | Test Acc: 0.7152
+Losses: Train: 0.7067, Val: 0.8894, Test: 0.7665
+
+--- Epoch 17/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.16it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.58it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.44it/s]
+Epoch 17: Train Acc: 0.7350 | Val Acc: 0.6818 | Test Acc: 0.7278
+Losses: Train: 0.6774, Val: 0.8785, Test: 0.7181
+
+--- Epoch 18/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.85it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.46it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.19it/s]
+Epoch 18: Train Acc: 0.7532 | Val Acc: 0.6948 | Test Acc: 0.7785
+Losses: Train: 0.6249, Val: 0.7892, Test: 0.6135
+
+--- Epoch 19/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.96it/s]
+Validating: 100% 10/10 [00:01<00:00,  5.89it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.17it/s]
+Epoch 19: Train Acc: 0.7486 | Val Acc: 0.6753 | Test Acc: 0.7468
+Losses: Train: 0.6373, Val: 0.8795, Test: 0.7664
+
+--- Epoch 20/30 ---
+Training: 100% 138/138 [00:21<00:00,  6.41it/s]
+Validating: 100% 10/10 [00:01<00:00,  6.14it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.39it/s]
+Epoch 20: Train Acc: 0.7659 | Val Acc: 0.6623 | Test Acc: 0.7595
+Losses: Train: 0.6033, Val: 0.9004, Test: 0.7038
+
+--- Epoch 21/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.24it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.53it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.29it/s]
+Epoch 21: Train Acc: 0.7741 | Val Acc: 0.6883 | Test Acc: 0.7532
+Losses: Train: 0.5864, Val: 0.8994, Test: 0.7189
+
+--- Epoch 22/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.79it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.39it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.36it/s]
+Epoch 22: Train Acc: 0.7709 | Val Acc: 0.6883 | Test Acc: 0.7595
+Losses: Train: 0.5917, Val: 0.8713, Test: 0.7045
+
+--- Epoch 23/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.85it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.48it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.33it/s]
+Epoch 23: Train Acc: 0.7814 | Val Acc: 0.7078 | Test Acc: 0.7532
+Losses: Train: 0.5682, Val: 0.8606, Test: 0.6753
+
+--- Epoch 24/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.17it/s]
+Validating: 100% 10/10 [00:02<00:00,  4.30it/s]
+Testing: 100% 10/10 [00:01<00:00,  6.39it/s]
+Epoch 24: Train Acc: 0.8005 | Val Acc: 0.6494 | Test Acc: 0.7595
+Losses: Train: 0.5396, Val: 0.9386, Test: 0.6946
+
+--- Epoch 25/30 ---
+Training: 100% 138/138 [00:21<00:00,  6.35it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.62it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.78it/s]
+Epoch 25: Train Acc: 0.7946 | Val Acc: 0.6948 | Test Acc: 0.7658
+Losses: Train: 0.5378, Val: 0.8461, Test: 0.6974
+
+--- Epoch 26/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.07it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.81it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.37it/s]
+Epoch 26: Train Acc: 0.7955 | Val Acc: 0.6818 | Test Acc: 0.7595
+Losses: Train: 0.5194, Val: 0.8730, Test: 0.6818
+
+--- Epoch 27/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.94it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.41it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.21it/s]
+Epoch 27: Train Acc: 0.8101 | Val Acc: 0.7013 | Test Acc: 0.7468
+Losses: Train: 0.5108, Val: 0.8791, Test: 0.6938
+
+--- Epoch 28/30 ---
+Training: 100% 138/138 [00:23<00:00,  5.96it/s]
+Validating: 100% 10/10 [00:01<00:00,  5.70it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.39it/s]
+Epoch 28: Train Acc: 0.8128 | Val Acc: 0.7013 | Test Acc: 0.7595
+Losses: Train: 0.5017, Val: 0.8626, Test: 0.6715
+
+--- Epoch 29/30 ---
+Training: 100% 138/138 [00:21<00:00,  6.38it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.12it/s]
+Testing: 100% 10/10 [00:02<00:00,  4.36it/s]
+Epoch 29: Train Acc: 0.8110 | Val Acc: 0.7013 | Test Acc: 0.7658
+Losses: Train: 0.5044, Val: 0.8667, Test: 0.6753
+
+--- Epoch 30/30 ---
+Training: 100% 138/138 [00:22<00:00,  6.19it/s]
+Validating: 100% 10/10 [00:01<00:00,  7.70it/s]
+Testing: 100% 10/10 [00:01<00:00,  7.26it/s]
+Epoch 30: Train Acc: 0.8138 | Val Acc: 0.6948 | Test Acc: 0.7595
+Losses: Train: 0.5021, Val: 0.8676, Test: 0.6791
+
+--- Final Evaluation on Best Model ---
+Final Test: 100% 10/10 [00:01<00:00,  7.14it/s]
+Final Test Accuracy: 0.7848
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9000    0.8438    0.8710        32
+        Healthy skin     0.8148    0.9778    0.8889        45
+Ichthyosis vulgaris      0.7843    0.8696    0.8247        46
+ Lamellar ichthyosis     0.6250    0.4545    0.5263        22
+  Netherton syndrome     0.4286    0.2308    0.3000        13
+
+            accuracy                         0.7848       158
+           macro avg     0.7105    0.6753    0.6822       158
+        weighted avg     0.7650    0.7848    0.7676       158
+
+
+Total prediction files: 12/12
+  [OK] biomedclip_y_pred.npy
+  [OK] cnn_y_pred.npy
+  [OK] coatnet_y_pred.npy
+  [OK] dinov2_y_pred.npy
+  [OK] efficientnet_pretrained_y_pred.npy
+  [OK] efficientnet_scratch_y_pred.npy
+  [OK] gft_y_pred.npy
+  [OK] swin_pretrained_y_pred.npy
+  [OK] swin_scratch_y_pred.npy
+  [OK] vit_pretrained_y_pred.npy
+  [OK] vit_scratch_y_pred.npy
+  [OK] wavecoatnet_y_pred.npy, ours: /content/drive/MyDrive/WaveCoAtNet_experiments/H-CoAtNet-Ichthyosis-Classification/H-CoAtNet
+Using device: cuda
+Random seed: 42
+Downloading dataset from Roboflow...
+loading Roboflow workspace...
+loading Roboflow project...
+Downloading Dataset Version Zip in ich-s-1 to folder:: 100% 179569/179569 [00:16<00:00, 10901.26it/s]
+
+Extracting Dataset Version Zip to ich-s-1 in folder:: 100% 2528/2528 [00:27<00:00, 93.47it/s]
+Found 5 classes: ['Harlequin ichthyosis', 'Healthy skin', 'Ichthyosis vulgaris ', 'Lamellar ichthyosis', 'Netherton syndrome']
+Class weights: [1.0457 0.8663 0.61   1.3556 1.952 ]
+model.safetensors: 100% 114M/114M [00:03<00:00, 36.3MB/s]
+
+--- Model Summary ---
+=========================================================================================================
+Layer (type:depth-idx)                                  Output Shape              Param #
+=========================================================================================================
+WaveCoAtNet                                             [24, 5]                   839,552
+├─Sequential: 1-1                                       [24, 96, 56, 56]          --
+│    └─Conv2d: 2-1                                      [24, 96, 56, 56]          4,704
+│    └─LayerNorm2d: 2-2                                 [24, 96, 56, 56]          192
+├─ConvNeXtStage: 1-2                                    [24, 96, 56, 56]          --
+│    └─Identity: 2-3                                    [24, 96, 56, 56]          --
+│    └─Sequential: 2-4                                  [24, 96, 56, 56]          --
+│    │    └─ConvNeXtBlock: 3-1                          [24, 96, 56, 56]          79,296
+│    │    └─ConvNeXtBlock: 3-2                          [24, 96, 56, 56]          79,296
+│    │    └─ConvNeXtBlock: 3-3                          [24, 96, 56, 56]          79,296
+├─ConvNeXtStage: 1-3                                    [24, 192, 28, 28]         --
+│    └─Sequential: 2-5                                  [24, 192, 28, 28]         --
+│    │    └─LayerNorm2d: 3-4                            [24, 96, 56, 56]          192
+│    │    └─Conv2d: 3-5                                 [24, 192, 28, 28]         73,920
+│    └─Sequential: 2-6                                  [24, 192, 28, 28]         --
+│    │    └─ConvNeXtBlock: 3-6                          [24, 192, 28, 28]         306,048
+│    │    └─ConvNeXtBlock: 3-7                          [24, 192, 28, 28]         306,048
+│    │    └─ConvNeXtBlock: 3-8                          [24, 192, 28, 28]         306,048
+├─WaveletFrequencyDecomposedCrossAttention: 1-4         [24, 784, 192]            --
+│    └─Sequential: 2-7                                  [24, 192, 28, 28]         --
+│    │    └─Conv2d: 3-9                                 [24, 192, 28, 28]         18,432
+│    │    └─BatchNorm2d: 3-10                           [24, 192, 28, 28]         384
+│    │    └─GELU: 3-11                                  [24, 192, 28, 28]         --
+│    └─Sequential: 2-8                                  [24, 192, 28, 28]         --
+│    │    └─Conv2d: 3-12                                [24, 192, 28, 28]         55,296
+│    │    └─BatchNorm2d: 3-13                           [24, 192, 28, 28]         384
+│    │    └─GELU: 3-14                                  [24, 192, 28, 28]         --
+│    └─LayerNorm: 2-9                                   [24, 784, 192]            384
+│    └─LayerNorm: 2-10                                  [24, 784, 192]            384
+│    └─Linear: 2-11                                     [24, 784, 192]            36,864
+│    └─Linear: 2-12                                     [24, 784, 192]            36,864
+│    └─Linear: 2-13                                     [24, 784, 192]            36,864
+│    └─Dropout: 2-14                                    [24, 4, 784, 784]         --
+│    └─Linear: 2-15                                     [24, 784, 192]            37,056
+│    └─Dropout: 2-16                                    [24, 784, 192]            --
+│    └─LayerNorm: 2-17                                  [24, 784, 192]            384
+│    └─LayerNorm: 2-18                                  [24, 784, 192]            (recursive)
+│    └─Linear: 2-19                                     [24, 784, 192]            (recursive)
+│    └─Linear: 2-20                                     [24, 784, 192]            36,864
+│    └─Linear: 2-21                                     [24, 784, 192]            36,864
+│    └─Dropout: 2-22                                    [24, 4, 784, 784]         --
+│    └─Linear: 2-23                                     [24, 784, 192]            37,056
+│    └─Dropout: 2-24                                    [24, 784, 192]            --
+│    └─Sequential: 2-25                                 [24, 784, 1]              --
+│    │    └─Linear: 3-15                                [24, 784, 48]             18,480
+│    │    └─GELU: 3-16                                  [24, 784, 48]             --
+│    │    └─Dropout: 3-17                               [24, 784, 48]             --
+│    │    └─Linear: 3-18                                [24, 784, 1]              49
+│    │    └─Sigmoid: 3-19                               [24, 784, 1]              --
+│    └─LayerNorm: 2-26                                  [24, 784, 192]            384
+│    └─Sequential: 2-27                                 [24, 784, 192]            --
+│    │    └─Linear: 3-20                                [24, 784, 384]            74,112
+│    │    └─GELU: 3-21                                  [24, 784, 384]            --
+│    │    └─Dropout: 3-22                               [24, 784, 384]            --
+│    │    └─Linear: 3-23                                [24, 784, 192]            73,920
+│    │    └─Dropout: 3-24                               [24, 784, 192]            --
+├─ModuleList: 1-5                                       --                        --
+│    └─Block: 2-28                                      [24, 784, 192]            --
+│    │    └─LayerNorm: 3-25                             [24, 784, 192]            384
+│    │    └─Attention: 3-26                             [24, 784, 192]            147,648
+│    │    └─Identity: 3-27                              [24, 784, 192]            --
+│    │    └─Identity: 3-28                              [24, 784, 192]            --
+│    │    └─LayerNorm: 3-29                             [24, 784, 192]            384
+│    │    └─Mlp: 3-30                                   [24, 784, 192]            295,872
+│    │    └─Identity: 3-31                              [24, 784, 192]            --
+│    │    └─Identity: 3-32                              [24, 784, 192]            --
+│    └─Block: 2-29                                      [24, 784, 192]            --
+│    │    └─LayerNorm: 3-33                             [24, 784, 192]            384
+│    │    └─Attention: 3-34                             [24, 784, 192]            147,648
+│    │    └─Identity: 3-35                              [24, 784, 192]            --
+│    │    └─Identity: 3-36                              [24, 784, 192]            --
+│    │    └─LayerNorm: 3-37                             [24, 784, 192]            384
+│    │    └─Mlp: 3-38                                   [24, 784, 192]            295,872
+│    │    └─Identity: 3-39                              [24, 784, 192]            --
+│    │    └─Identity: 3-40                              [24, 784, 192]            --
+├─ConvNeXtStage: 1-6                                    [24, 384, 14, 14]         --
+│    └─Sequential: 2-30                                 [24, 384, 14, 14]         --
+│    │    └─LayerNorm2d: 3-41                           [24, 192, 28, 28]         384
+│    │    └─Conv2d: 3-42                                [24, 384, 14, 14]         295,296
+│    └─Sequential: 2-31                                 [24, 384, 14, 14]         --
+│    │    └─ConvNeXtBlock: 3-43                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-44                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-45                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-46                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-47                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-48                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-49                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-50                         [24, 384, 14, 14]         1,201,920
+│    │    └─ConvNeXtBlock: 3-51                         [24, 384, 14, 14]         1,201,920
+├─ConvNeXtStage: 1-7                                    [24, 768, 7, 7]           --
+│    └─Sequential: 2-32                                 [24, 768, 7, 7]           --
+│    │    └─LayerNorm2d: 3-52                           [24, 384, 14, 14]         768
+│    │    └─Conv2d: 3-53                                [24, 768, 7, 7]           1,180,416
+│    └─Sequential: 2-33                                 [24, 768, 7, 7]           --
+│    │    └─ConvNeXtBlock: 3-54                         [24, 768, 7, 7]           4,763,136
+│    │    └─ConvNeXtBlock: 3-55                         [24, 768, 7, 7]           4,763,136
+│    │    └─ConvNeXtBlock: 3-56                         [24, 768, 7, 7]           4,763,136
+├─PrototypeAnchoredTokenSelection: 1-8                  [24, 27, 768]             3
+│    └─LayerNorm: 2-34                                  [24, 49, 768]             1,536
+│    └─Sequential: 2-35                                 [24, 49, 1]               --
+│    │    └─Linear: 3-57                                [24, 49, 48]              36,912
+│    │    └─GELU: 3-58                                  [24, 49, 48]              --
+│    │    └─Dropout: 3-59                               [24, 49, 48]              --
+│    │    └─Linear: 3-60                                [24, 49, 1]               49
+│    └─Sequential: 2-36                                 [24, 1]                   --
+│    │    └─Linear: 3-61                                [24, 32]                  24,704
+│    │    └─GELU: 3-62                                  [24, 32]                  --
+│    │    └─Linear: 3-63                                [24, 1]                   33
+│    │    └─Sigmoid: 3-64                               [24, 1]                   --
+├─Sequential: 1-9                                       [24, 5]                   --
+│    └─LayerNorm: 2-37                                  [24, 768]                 1,536
+│    └─Dropout: 2-38                                    [24, 768]                 --
+│    └─Linear: 2-39                                     [24, 5]                   3,845
+=========================================================================================================
+Total params: 30,116,363
+Trainable params: 30,116,363
+Non-trainable params: 0
+Total mult-adds (Units.GIGABYTES): 9.14
+=========================================================================================================
+Input size (MB): 14.45
+Forward/backward pass size (MB): 4379.32
+Params size (MB): 117.08
+Estimated Total Size (MB): 4510.86
+=========================================================================================================
+
+--- Epoch 1/30 ---
+  Train Acc: 0.4472 | Val Acc: 0.6429 | Test Acc: 0.7405
+  Losses -- Train: 1.7229 | Val: 1.1315 | Test: 1.0520
+  Epoch time: 92.2s | LR: 4.99e-05
+  New best model saved (Val Acc = 0.6429)
+
+--- Epoch 2/30 ---
+  Train Acc: 0.6589 | Val Acc: 0.6883 | Test Acc: 0.7848
+  Losses -- Train: 1.3922 | Val: 1.0307 | Test: 0.9982
+  Epoch time: 77.5s | LR: 4.95e-05
+  New best model saved (Val Acc = 0.6883)
+
+--- Epoch 3/30 ---
+  Train Acc: 0.7582 | Val Acc: 0.7792 | Test Acc: 0.8671
+  Losses -- Train: 1.1846 | Val: 0.8653 | Test: 0.8207
+  Epoch time: 75.5s | LR: 4.88e-05
+  New best model saved (Val Acc = 0.7792)
+
+--- Epoch 4/30 ---
+  Train Acc: 0.8119 | Val Acc: 0.7922 | Test Acc: 0.8291
+  Losses -- Train: 1.0595 | Val: 0.9477 | Test: 0.8707
+  Epoch time: 75.4s | LR: 4.78e-05
+  New best model saved (Val Acc = 0.7922)
+
+--- Epoch 5/30 ---
+  Train Acc: 0.8670 | Val Acc: 0.7922 | Test Acc: 0.8481
+  Losses -- Train: 0.9203 | Val: 0.9590 | Test: 0.8715
+  Epoch time: 76.0s | LR: 4.67e-05
+
+--- Epoch 6/30 ---
+  Train Acc: 0.8930 | Val Acc: 0.8377 | Test Acc: 0.8671
+  Losses -- Train: 0.8800 | Val: 0.8574 | Test: 0.8165
+  Epoch time: 76.2s | LR: 4.52e-05
+  New best model saved (Val Acc = 0.8377)
+
+--- Epoch 7/30 ---
+  Train Acc: 0.9271 | Val Acc: 0.8701 | Test Acc: 0.8861
+  Losses -- Train: 0.7922 | Val: 0.7792 | Test: 0.7443
+  Epoch time: 76.8s | LR: 4.36e-05
+  New best model saved (Val Acc = 0.8701)
+
+--- Epoch 8/30 ---
+  Train Acc: 0.9458 | Val Acc: 0.8506 | Test Acc: 0.8861
+  Losses -- Train: 0.7499 | Val: 0.7958 | Test: 0.7176
+  Epoch time: 75.7s | LR: 4.17e-05
+
+--- Epoch 9/30 ---
+  Train Acc: 0.9440 | Val Acc: 0.8831 | Test Acc: 0.8861
+  Losses -- Train: 0.7382 | Val: 0.8008 | Test: 0.7339
+  Epoch time: 74.5s | LR: 3.97e-05
+  New best model saved (Val Acc = 0.8831)
+
+--- Epoch 10/30 ---
+  Train Acc: 0.9640 | Val Acc: 0.8571 | Test Acc: 0.9051
+  Losses -- Train: 0.6979 | Val: 0.7978 | Test: 0.7705
+  Epoch time: 76.6s | LR: 3.75e-05
+
+--- Epoch 11/30 ---
+  Train Acc: 0.9736 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6698 | Val: 0.8090 | Test: 0.7614
+  Epoch time: 76.1s | LR: 3.52e-05
+
+--- Epoch 12/30 ---
+  Train Acc: 0.9645 | Val Acc: 0.8701 | Test Acc: 0.8861
+  Losses -- Train: 0.6955 | Val: 0.8252 | Test: 0.7779
+  Epoch time: 74.6s | LR: 3.27e-05
+
+--- Epoch 13/30 ---
+  Train Acc: 0.9763 | Val Acc: 0.8896 | Test Acc: 0.8924
+  Losses -- Train: 0.6640 | Val: 0.7645 | Test: 0.7451
+  Epoch time: 74.7s | LR: 3.02e-05
+  New best model saved (Val Acc = 0.8896)
+
+--- Epoch 14/30 ---
+  Train Acc: 0.9809 | Val Acc: 0.8766 | Test Acc: 0.8797
+  Losses -- Train: 0.6554 | Val: 0.7925 | Test: 0.7913
+  Epoch time: 76.0s | LR: 2.76e-05
+
+--- Epoch 15/30 ---
+  Train Acc: 0.9804 | Val Acc: 0.8636 | Test Acc: 0.9051
+  Losses -- Train: 0.6471 | Val: 0.8441 | Test: 0.7765
+  Epoch time: 74.7s | LR: 2.50e-05
+
+--- Epoch 16/30 ---
+  Train Acc: 0.9841 | Val Acc: 0.8636 | Test Acc: 0.8861
+  Losses -- Train: 0.6382 | Val: 0.8473 | Test: 0.8278
+  Epoch time: 76.1s | LR: 2.24e-05
+
+--- Epoch 17/30 ---
+  Train Acc: 0.9731 | Val Acc: 0.8766 | Test Acc: 0.8987
+  Losses -- Train: 0.6626 | Val: 0.8099 | Test: 0.7891
+  Epoch time: 75.1s | LR: 1.98e-05
+
+--- Epoch 18/30 ---
+  Train Acc: 0.9895 | Val Acc: 0.8701 | Test Acc: 0.8797
+  Losses -- Train: 0.6323 | Val: 0.7990 | Test: 0.8118
+  Epoch time: 74.7s | LR: 1.73e-05
+
+--- Epoch 19/30 ---
+  Train Acc: 0.9900 | Val Acc: 0.8896 | Test Acc: 0.8734
+  Losses -- Train: 0.6250 | Val: 0.7765 | Test: 0.8164
+  Epoch time: 75.1s | LR: 1.48e-05
+
+--- Epoch 20/30 ---
+  Train Acc: 0.9913 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6224 | Val: 0.8022 | Test: 0.7965
+  Epoch time: 74.9s | LR: 1.25e-05
+
+--- Epoch 21/30 ---
+  Train Acc: 0.9913 | Val Acc: 0.8701 | Test Acc: 0.8861
+  Losses -- Train: 0.6179 | Val: 0.8099 | Test: 0.7849
+  Epoch time: 76.2s | LR: 1.03e-05
+
+--- Epoch 22/30 ---
+  Train Acc: 0.9927 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6209 | Val: 0.7952 | Test: 0.8086
+  Epoch time: 75.1s | LR: 8.27e-06
+
+--- Epoch 23/30 ---
+  Train Acc: 0.9936 | Val Acc: 0.8636 | Test Acc: 0.8797
+  Losses -- Train: 0.6221 | Val: 0.8247 | Test: 0.7742
+  Epoch time: 74.4s | LR: 6.42e-06
+
+--- Epoch 24/30 ---
+  Train Acc: 0.9923 | Val Acc: 0.8571 | Test Acc: 0.8861
+  Losses -- Train: 0.6170 | Val: 0.8089 | Test: 0.7984
+  Epoch time: 74.6s | LR: 4.77e-06
+
+--- Epoch 25/30 ---
+  Train Acc: 0.9927 | Val Acc: 0.8636 | Test Acc: 0.8987
+  Losses -- Train: 0.6154 | Val: 0.8154 | Test: 0.7762
+  Epoch time: 74.4s | LR: 3.35e-06
+
+--- Epoch 26/30 ---
+  Train Acc: 0.9936 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6112 | Val: 0.7874 | Test: 0.7681
+  Epoch time: 75.5s | LR: 2.16e-06
+
+--- Epoch 27/30 ---
+  Train Acc: 0.9936 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6163 | Val: 0.7864 | Test: 0.7683
+  Epoch time: 75.6s | LR: 1.22e-06
+
+--- Epoch 28/30 ---
+  Train Acc: 0.9959 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6080 | Val: 0.7855 | Test: 0.7721
+  Epoch time: 74.9s | LR: 5.46e-07
+
+--- Epoch 29/30 ---
+  Train Acc: 0.9941 | Val Acc: 0.8701 | Test Acc: 0.8861
+  Losses -- Train: 0.6136 | Val: 0.7834 | Test: 0.7698
+  Epoch time: 74.9s | LR: 1.37e-07
+
+--- Epoch 30/30 ---
+  Train Acc: 0.9954 | Val Acc: 0.8766 | Test Acc: 0.8861
+  Losses -- Train: 0.6068 | Val: 0.7825 | Test: 0.7707
+  Epoch time: 74.6s | LR: 0.00e+00
+
+Average epoch time: 76.0s
+
+--- Final Evaluation (Best Checkpoint) ---
+Final Test Accuracy: 89.24%
+Predictions saved to wavecoatnet_y_true.npy and wavecoatnet_y_pred.npy
+
+Classification Report:
+                      precision    recall  f1-score   support
+
+Harlequin ichthyosis     0.9667    0.9062    0.9355        32
+        Healthy skin     0.9783    1.0000    0.9890        45
+Ichthyosis vulgaris      0.9167    0.9565    0.9362        46
+ Lamellar ichthyosis     0.6522    0.6818    0.6667        22
+  Netherton syndrome     0.7273    0.6154    0.6667        13
+
+            accuracy                         0.8924       158
+           macro avg     0.8482    0.8320    0.8388       158
+        weighted avg     0.8919    0.8924    0.8914       158
+
+
+--- Hyperparameter Summary ---
+  Architecture     : WaveCoAtNet (ConvNeXt-Tiny + WG-FDCA + 2 ViT + PA-DTS + SCTR)
+  Backbone         : convnext_tiny (pretrained=True, ImageNet-1k)
+  Input resolution : 224x224
+  Batch size       : 24
+  Epochs           : 30
+  Optimiser        : AdamW (lr=5e-05, weight_decay=0.01)
+  LR schedule      : CosineAnnealingLR (T_max=30)
+  Loss             : CE(label_smoothing=0.1, class_weights) + 0.1*SupCon(T=0.07)
+  Dropout          : 0.2
+  Prototype EMA    : momentum=0.999
+  Random seed      : 42
+  Trainable params : 30,116,363
+  Avg epoch time   : 76.0s  (device: cuda)
+  OK best_wavecoatnet.pth
+  OK wavecoatnet_y_pred.npy
+  OK wavecoatnet_y_true.npy

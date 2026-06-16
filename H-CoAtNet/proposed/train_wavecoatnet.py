@@ -65,7 +65,8 @@ API_KEY = "gXuxxWEMFJ8nK73o7pN7"
 TARGET_SIZE = (224, 224)
 BATCH_SIZE = 24
 EPOCHS = 30
-LEARNING_RATE = 5e-5
+LR_BACKBONE = 1e-5          # lower LR for pretrained ConvNeXt stages (matches Swin-T, ViT, EfficientNet baselines)
+LR_HEAD = 1e-4              # higher LR for novel modules + classifier (matches baselines)
 WEIGHT_DECAY = 0.01
 DROPOUT = 0.2
 SCTR_WEIGHT = 0.1           # weight for contrastive loss term
@@ -514,10 +515,12 @@ class WaveCoAtNet(nn.Module):
         num_vit_tokens = 28 * 28
         self.pos_embed = nn.Parameter(torch.zeros(1, num_vit_tokens, vit_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        # Stochastic depth for regularisation (linearly increasing drop rate)
         self.vit_blocks = nn.ModuleList([
             Block(dim=vit_dim, num_heads=6,
-                  proj_drop=dropout, attn_drop=dropout * 0.5)
-            for _ in range(vit_blocks)
+                  proj_drop=dropout, attn_drop=dropout * 0.5,
+                  drop_path=0.1 * (i + 1) / vit_blocks)
+            for i in range(vit_blocks)
         ])
 
         # Novel Module 2: Prototype-Anchored Dynamic Token Selection
@@ -721,7 +724,26 @@ def main():
 
     model     = WaveCoAtNet(num_classes=num_classes, dropout=DROPOUT).to(DEVICE)
     criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+
+    # Layer-wise LR: pretrained backbone gets lower LR, novel modules get higher LR
+    # This matches the training protocol used by EfficientNet-B0, Swin-T, ViT-B/16,
+    # BiomedCLIP, and DINOv2 baselines for fair comparison.
+    backbone_params = []
+    novel_params = []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        if any(s in name for s in ['cnn_stem', 'cnn_stage1', 'cnn_stage2', 'cnn_stage3', 'cnn_stage4']):
+            backbone_params.append(p)
+        else:
+            novel_params.append(p)
+    print(f"Param groups: backbone={sum(p.numel() for p in backbone_params):,}, "
+          f"novel={sum(p.numel() for p in novel_params):,}")
+
+    optimizer = torch.optim.AdamW([
+        {'params': backbone_params, 'lr': LR_BACKBONE},
+        {'params': novel_params,    'lr': LR_HEAD},
+    ], weight_decay=WEIGHT_DECAY)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 
     try:
@@ -797,7 +819,7 @@ def main():
     print(f"  Input resolution : {TARGET_SIZE[0]}x{TARGET_SIZE[1]}")
     print(f"  Batch size       : {BATCH_SIZE}")
     print(f"  Epochs           : {EPOCHS}")
-    print(f"  Optimiser        : AdamW (lr={LEARNING_RATE}, weight_decay={WEIGHT_DECAY})")
+    print(f"  Optimiser        : AdamW (backbone_lr={LR_BACKBONE}, head_lr={LR_HEAD}, weight_decay={WEIGHT_DECAY})")
     print(f"  LR schedule      : CosineAnnealingLR (T_max={EPOCHS})")
     print(f"  Loss             : CE(label_smoothing=0.1, class_weights) + {SCTR_WEIGHT}*SupCon(T=0.07)")
     print(f"  Dropout          : {DROPOUT}")
