@@ -7,8 +7,9 @@ module. All conditions use identical hyperparameters, seed, and data split.
     python evaluation/ablation.py --condition full
 
 Conditions:
-  full             -- WaveCoAtNet (all: WG-FDCA + 4 ViT + PA-DTS + PGAP + SCTR)
-  no_pgap          -- Full but with mean-pooling instead of PGAP
+  full             -- WaveCoAtNet (all: WG-FDCA + 4 ViT + PA-DTS + PGAP + DPA + SCTR)
+  no_dpa           -- Full but with PGAP only (no Dual-Path Aggregation)
+  no_pgap          -- Full but with mean-pooling instead of PGAP+DPA
   no_wgfdca        -- Plain cross-attention instead of wavelet-decomposed
   no_transformer   -- CNN + PA-DTS only (no ViT blocks, no cross-attention)
   no_padts         -- WG-FDCA + ViT, but uses global avg pool (no token selection)
@@ -63,7 +64,7 @@ DEVICE       = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 RESULTS_CSV  = "ablation_results.csv"
 
 VALID_CONDITIONS = (
-    'full', 'no_pgap', 'no_wgfdca', 'no_transformer',
+    'full', 'no_dpa', 'no_pgap', 'no_wgfdca', 'no_transformer',
     'no_padts', 'no_sctr', 'fixed_pruning', 'no_prototypes', 'baseline'
 )
 
@@ -173,11 +174,12 @@ class PlainCrossAttention(nn.Module):
 
 # ── PA-DTS (Novel Module 2) ──────────────────────────────────────────────────
 class PrototypeAnchoredTokenSelection(nn.Module):
-    def __init__(self, dim, num_classes=5, min_keep=0.3, max_keep=0.8, dropout=0.0):
+    def __init__(self, dim, num_classes=5, min_keep=0.6, max_keep=0.95, dropout=0.0):
         super().__init__()
         self.dim = dim; self.num_classes = num_classes
         self.min_keep = min_keep; self.max_keep = max_keep
         self.register_buffer('prototypes', torch.randn(num_classes, dim) * 0.02)
+        self.proto_temperature = nn.Parameter(torch.tensor(1.0))
         mid = max(1, dim // 16)
         self.channel_scorer = nn.Sequential(nn.Linear(dim, mid), nn.GELU(), nn.Dropout(dropout), nn.Linear(mid, 1))
         self.importance_weights = nn.Parameter(torch.tensor([1.0, 0.5, 0.5]))
@@ -191,7 +193,7 @@ class PrototypeAnchoredTokenSelection(nn.Module):
         t_norm = F.normalize(x_normed, dim=-1)
         sim = t_norm @ p_norm.T
         proto_aff = sim.max(dim=-1).values
-        proto_probs = F.softmax(sim / 0.1, dim=-1)
+        proto_probs = F.softmax(sim / self.proto_temperature.clamp(min=0.01), dim=-1)
         proto_ent = -(proto_probs * (proto_probs + 1e-8).log()).sum(dim=-1)
         ch_score = self.channel_scorer(x_normed).squeeze(-1)
 
@@ -306,7 +308,8 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             super().__init__()
             self.condition = condition
             self.use_sctr = condition not in ('fixed_pruning', 'baseline', 'no_sctr')
-            self.use_pgap = condition in ('full', 'no_wgfdca', 'no_sctr')  # PGAP for conditions that use PA-DTS
+            self.use_pgap = condition in ('full', 'no_dpa', 'no_wgfdca', 'no_sctr')  # PGAP for conditions that use PA-DTS
+            self.use_dpa = condition in ('full', 'no_wgfdca', 'no_sctr')  # DPA for full-featured conditions (not no_dpa)
 
             if condition == 'baseline':
                 self.model = create_model('convnext_tiny', pretrained=True, num_classes=num_classes)
@@ -340,15 +343,15 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
                 nn.init.trunc_normal_(self.pos_embed, std=0.02)
                 self.vit_blocks = nn.ModuleList([
                     Block(dim=vit_dim, num_heads=6, proj_drop=DROPOUT, attn_drop=DROPOUT*0.5,
-                          drop_path=0.1 * (i + 1) / VIT_BLOCKS)
+                          drop_path=0.2 * (i + 1) / VIT_BLOCKS)
                     for i in range(VIT_BLOCKS)])
 
             # Token selection
             final_dim = 768
             if use_padts:
-                self.token_selector = PrototypeAnchoredTokenSelection(final_dim, num_classes, 0.3, 0.8, DROPOUT*0.25)
+                self.token_selector = PrototypeAnchoredTokenSelection(final_dim, num_classes, 0.6, 0.95, DROPOUT*0.25)
             elif use_se_selection:
-                self.token_selector = SETokenSelection(final_dim, 0.3, 0.8, DROPOUT*0.25)
+                self.token_selector = SETokenSelection(final_dim, 0.6, 0.95, DROPOUT*0.25)
             elif use_fixed:
                 self.selection_sizes = [int(49*0.75), int(49*0.50)]
                 self.hse_blocks = nn.ModuleList([FixedSEPruning(final_dim, 16, DROPOUT*0.25) for _ in self.selection_sizes])
@@ -357,6 +360,13 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
             if self.use_pgap:
                 self.pgap_proj = nn.Linear(final_dim, final_dim)
                 self.pgap_norm = nn.LayerNorm(final_dim)
+
+            # DPA: Dual-Path Aggregation (selective + holistic)
+            if self.use_dpa:
+                self.gap_proj = nn.Linear(final_dim, final_dim)
+                self.dpa_gate = nn.Sequential(
+                    nn.Linear(final_dim * 2, final_dim // 4), nn.GELU(),
+                    nn.Linear(final_dim // 4, final_dim), nn.Sigmoid())
 
             # SCTR
             if self.use_sctr:
@@ -373,7 +383,7 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
 
             has_ca = self.condition != 'no_transformer'
             has_vit = self.condition != 'no_transformer'
-            use_padts = self.condition in ('full', 'no_pgap', 'no_wgfdca', 'no_sctr')
+            use_padts = self.condition in ('full', 'no_dpa', 'no_pgap', 'no_wgfdca', 'no_sctr')
             use_se_sel = self.condition == 'no_prototypes'
             use_fixed = self.condition == 'fixed_pruning'
             use_gap = self.condition == 'no_padts'
@@ -407,7 +417,14 @@ def build_model(condition: str, num_classes: int) -> nn.Module:
                     proto_aff = query_normed @ proto_normed.T
                     diag_rel = proto_aff.max(dim=-1).values
                     attn_w = F.softmax(diag_rel, dim=-1).unsqueeze(-1)
-                    embeddings = (selected * attn_w).sum(dim=1)
+                    pgap_embed = (selected * attn_w).sum(dim=1)
+                    if self.use_dpa:
+                        # DPA: blend selective (PGAP) and holistic (GAP)
+                        gap_embed = self.gap_proj(x.mean(dim=1))
+                        dpa_g = self.dpa_gate(torch.cat([pgap_embed, gap_embed], dim=-1))
+                        embeddings = dpa_g * pgap_embed + (1 - dpa_g) * gap_embed
+                    else:
+                        embeddings = pgap_embed
                 else:
                     embeddings = selected.mean(dim=1)
             elif use_fixed:
@@ -444,6 +461,7 @@ def train_epoch(model, loader, criterion, optimizer, use_sctr=True, epoch=0, sct
         else:
             loss = ce
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         # Prototype EMA update before weight mutation
         if hasattr(model, 'token_selector') and hasattr(model.token_selector, 'update_prototypes'):
             model.token_selector.update_prototypes(emb.detach(), tgts, proto_mom)
@@ -483,7 +501,8 @@ def main():
 
     labels = {
         'full':           'WaveCoAtNet (Full)',
-        'no_pgap':        'w/o PGAP (Mean Pool)',
+        'no_dpa':         'w/o DPA (PGAP only)',
+        'no_pgap':        'w/o PGAP+DPA (Mean Pool)',
         'no_wgfdca':      'w/o WG-FDCA (Plain CA)',
         'no_transformer': 'w/o Transformer',
         'no_padts':       'w/o PA-DTS (GAP)',

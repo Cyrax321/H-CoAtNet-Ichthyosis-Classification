@@ -14,14 +14,26 @@ Novel contributions:
 
   2. Prototype-Anchored Dynamic Token Selection (PA-DTS) --
      Selects diagnostically relevant tokens by scoring them against learnable
-     class prototypes (updated via EMA). Combines prototype affinity, affinity
-     entropy (keeps ambiguous boundary tokens), and channel attention for
-     importance ranking with adaptive keep-ratio prediction.
+     class prototypes (updated via EMA). Uses a learnable prototype
+     temperature for adaptive similarity sharpness. Combines prototype
+     affinity, affinity entropy, and channel attention for importance
+     ranking with adaptive keep-ratio prediction.
 
   3. Supervised Contrastive Token Regularization (SCTR) --
      Auxiliary SupCon loss on mean-pooled token embeddings that forces same-
      class representations to cluster and different-class to separate,
      improving inter-class discriminability for rare subtypes.
+
+  4. Prototype-Guided Attention Pooling (PGAP) --
+     Replaces naive mean-pooling with prototype-affinity-weighted
+     aggregation of selected tokens, sharpening classifier focus on
+     diagnostically relevant evidence.
+
+  5. Dual-Path Aggregation (DPA) --
+     Combines the selective pathway (PA-DTS + PGAP) with a holistic global
+     average pooling pathway through a learned content-dependent gate.
+     Ensures diagnostic information is preserved even when token selection
+     is aggressive or prototype attention is immature during early training.
 """
 
 import os
@@ -278,7 +290,7 @@ class PrototypeAnchoredTokenSelection(nn.Module):
         dropout:     Dropout rate
     """
     def __init__(self, dim: int, num_classes: int = 5,
-                 min_keep: float = 0.3, max_keep: float = 0.8,
+                 min_keep: float = 0.6, max_keep: float = 0.95,
                  dropout: float = 0.0):
         super().__init__()
         self.dim = dim
@@ -288,6 +300,11 @@ class PrototypeAnchoredTokenSelection(nn.Module):
 
         # Class prototypes (updated via EMA, not gradient descent)
         self.register_buffer('prototypes', torch.randn(num_classes, dim) * 0.02)
+
+        # Learnable temperature for prototype similarity sharpness.
+        # Starts at 1.0 (soft assignments) for stable early training,
+        # then the model learns to sharpen as prototypes mature.
+        self.proto_temperature = nn.Parameter(torch.tensor(1.0))
 
         # Channel attention scorer (SE-style)
         mid = max(1, dim // 16)
@@ -328,7 +345,7 @@ class PrototypeAnchoredTokenSelection(nn.Module):
         proto_affinity = similarity.max(dim=-1).values             # (B, N)
 
         # 2. Affinity entropy (ambiguity signal)
-        proto_probs = F.softmax(similarity / 0.1, dim=-1)          # temperature=0.1
+        proto_probs = F.softmax(similarity / self.proto_temperature.clamp(min=0.01), dim=-1)
         proto_entropy = -(proto_probs * (proto_probs + 1e-8).log()).sum(dim=-1)  # (B, N)
 
         # 3. Channel attention score
@@ -484,8 +501,10 @@ class WaveCoAtNet(nn.Module):
       3. Positional embedding + ViT transformer blocks (global context)
       4. ConvNeXt stages 3-4 (deep semantic features)
       5. PA-DTS -- prototype-anchored adaptive token selection
-      6. Mean-pool -> LayerNorm -> Linear classifier
-      7. SCTR -- auxiliary contrastive loss on embeddings (training only)
+      6. PGAP -- prototype-guided attention pooling on selected tokens
+      7. DPA -- dual-path aggregation blending selective + holistic paths
+      8. LayerNorm -> Linear classifier
+      9. SCTR -- auxiliary contrastive loss on embeddings (training only)
 
     ConvNeXt-Tiny channel progression: 96 -> 192 -> 384 -> 768
     """
@@ -520,7 +539,7 @@ class WaveCoAtNet(nn.Module):
         self.vit_blocks = nn.ModuleList([
             Block(dim=vit_dim, num_heads=6,
                   proj_drop=dropout, attn_drop=dropout * 0.5,
-                  drop_path=0.1 * (i + 1) / vit_blocks)
+                  drop_path=0.2 * (i + 1) / vit_blocks)
             for i in range(vit_blocks)
         ])
 
@@ -528,7 +547,7 @@ class WaveCoAtNet(nn.Module):
         final_embed_dim = 768
         self.pa_dts = PrototypeAnchoredTokenSelection(
             dim=final_embed_dim, num_classes=num_classes,
-            min_keep=0.3, max_keep=0.8, dropout=dropout * 0.25
+            min_keep=0.6, max_keep=0.95, dropout=dropout * 0.25
         )
 
         # Novel Module 3: Supervised Contrastive Token Regularization
@@ -544,6 +563,19 @@ class WaveCoAtNet(nn.Module):
         # classifier's focus on discriminative evidence.
         self.pgap_proj = nn.Linear(final_embed_dim, final_embed_dim)
         self.pgap_norm = nn.LayerNorm(final_embed_dim)
+
+        # Novel Module 5: Dual-Path Aggregation (DPA)
+        # Combines the selective pathway (PA-DTS + PGAP) with a holistic
+        # global average pooling pathway through a learned gate. This ensures
+        # diagnostic information is preserved even when token selection is
+        # aggressive or prototype attention is immature during early training.
+        self.gap_proj = nn.Linear(final_embed_dim, final_embed_dim)
+        self.dpa_gate = nn.Sequential(
+            nn.Linear(final_embed_dim * 2, final_embed_dim // 4),
+            nn.GELU(),
+            nn.Linear(final_embed_dim // 4, final_embed_dim),
+            nn.Sigmoid(),
+        )
 
         # Store architecture config
         self.num_vit_blocks = vit_blocks
@@ -601,7 +633,13 @@ class WaveCoAtNet(nn.Module):
         proto_affinity = query_normed @ proto_normed.T                   # (B, K, num_classes)
         diag_relevance = proto_affinity.max(dim=-1).values               # (B, K)
         attn_weights = F.softmax(diag_relevance, dim=-1).unsqueeze(-1)   # (B, K, 1)
-        embeddings = (selected * attn_weights).sum(dim=1)                # (B, 768)
+        pgap_embed = (selected * attn_weights).sum(dim=1)                # (B, 768)
+
+        # DPA: Dual-Path Aggregation -- blend selective (PGAP) and
+        # holistic (GAP) feature pathways through a learned gate.
+        gap_embed = self.gap_proj(x.mean(dim=1))                         # (B, 768)
+        dpa_g = self.dpa_gate(torch.cat([pgap_embed, gap_embed], dim=-1))
+        embeddings = dpa_g * pgap_embed + (1 - dpa_g) * gap_embed        # (B, 768)
 
         logits = self.classifier(embeddings)
 
@@ -635,6 +673,7 @@ def train_epoch(model, loader, criterion, optimizer, epoch=0, sctr_weight=SCTR_W
         loss = ce_loss + sctr_weight * sctr_loss
 
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
         # EMA prototype update BEFORE weight mutation so prototypes
         # remain synchronised with the embedding space that produced them.
@@ -840,7 +879,7 @@ def main():
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("\n--- Hyperparameter Summary ---")
-    print(f"  Architecture     : WaveCoAtNet (ConvNeXt-Tiny + WG-FDCA + {model.num_vit_blocks} ViT + PA-DTS + PGAP + SCTR)")
+    print(f"  Architecture     : WaveCoAtNet (ConvNeXt-Tiny + WG-FDCA + {model.num_vit_blocks} ViT + PA-DTS + PGAP + DPA + SCTR)")
     print(f"  Backbone         : convnext_tiny (pretrained=True, ImageNet-1k)")
     print(f"  Input resolution : {TARGET_SIZE[0]}x{TARGET_SIZE[1]}")
     print(f"  Batch size       : {BATCH_SIZE}")
